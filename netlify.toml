@@ -4,7 +4,7 @@
   publish = "public"
 
 [functions]
-  included_files = ["views/**", "labs/**", "data/**", "node_modules/**"]
+  included_files = ["views/**", "labs/**", "data/**", "public/**"]
   node_bundler = "esbuild"
 
 [[redirects]]

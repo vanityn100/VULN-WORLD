@@ -29,7 +29,26 @@ app.use((req, res, next) => {
 // Load Hub Routes
 app.use('/', require('./routes/hub'));
 
-// Mount Lab Sub-apps dynamically
+// Static map of lab routers for bundler compatibility (esbuild on Netlify)
+const labRouters = {
+  'socialsphere': require('./labs/socialsphere/index.js'),
+  'shopzone': require('./labs/shopzone/index.js'),
+  'findit': require('./labs/findit/index.js'),
+  'bookbay': require('./labs/bookbay/index.js'),
+  'pixdrop': require('./labs/pixdrop/index.js'),
+  'profilehub': require('./labs/profilehub/index.js'),
+  'filevault': require('./labs/filevault/index.js'),
+  'mailbox': require('./labs/mailbox/index.js'),
+  'accounthub': require('./labs/accounthub/index.js'),
+  'paydesk': require('./labs/paydesk/index.js'),
+  'datahub': require('./labs/datahub/index.js'),
+  'templateworks': require('./labs/templateworks/index.js'),
+  'dropmart': require('./labs/dropmart/index.js'),
+  'linkhub': require('./labs/linkhub/index.js'),
+  'projecthub': require('./labs/projecthub/index.js')
+};
+
+// Mount Lab Sub-apps dynamically based on registry, but use statically required routers
 registry.labs.forEach(lab => {
   const labApp = express();
   
@@ -44,8 +63,8 @@ registry.labs.forEach(lab => {
   // so /labs/:labId/style.css maps to labs/:labId/public/style.css
   labApp.use(express.static(path.join(process.cwd(), 'labs', lab.id, 'public')));
   
-  // Load the lab's router
-  const labRouter = require(path.join(process.cwd(), 'labs', lab.id, 'index.js'));
+  // Load the lab's router from the static map
+  const labRouter = labRouters[lab.id];
   labApp.use('/', labRouter);
 
   // Mount on main app

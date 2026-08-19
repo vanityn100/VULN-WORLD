@@ -3,7 +3,8 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 
-const uploadDir = path.join(process.cwd(), 'labs', 'profilehub', 'public', 'uploads');
+const baseUploadDir = process.env.LAMBDA_TASK_ROOT ? '/tmp' : process.cwd();
+const uploadDir = path.join(baseUploadDir, 'labs', 'profilehub', 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

@@ -4,17 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-const labDir = path.join(__dirname, 'files');
-if (!fs.existsSync(labDir)) { 
-  fs.mkdirSync(labDir, { recursive: true }); 
-  fs.writeFileSync(path.join(labDir, 'public.txt'), 'Public File Content');
-}
-// Secret file is placed outside the web-accessible 'files' directory to simulate path traversal target
-const secretFilePath = path.join(__dirname, 'secret.txt');
-if (!fs.existsSync(secretFilePath)) {
-  fs.writeFileSync(secretFilePath, 'FLAG: FileVaultSecret');
-}
-
 const labObjective = "Exploit Path Traversal to read 'secret.txt' located in the parent directory of 'files', AND exploit Command Injection in the diagnostic tool to read the same file.";
 const labHints = [
   "For Path Traversal, look at the /download endpoint.",
@@ -23,6 +12,16 @@ const labHints = [
   "Can you append commands to the target using ';' or '&&'?",
   "Try payload like '127.0.0.1; cat ../secret.txt'"
 ];
+
+const labDir = path.join(process.cwd(), 'labs', 'filevault', 'files');
+const secretFilePath = path.join(process.cwd(), 'labs', 'filevault', 'secret.txt');
+if (!fs.existsSync(labDir)) { 
+  fs.mkdirSync(labDir, { recursive: true }); 
+  fs.writeFileSync(path.join(labDir, 'public.txt'), 'Public File Content');
+}
+if (!fs.existsSync(secretFilePath)) {
+  fs.writeFileSync(secretFilePath, 'FLAG: FileVaultSecret');
+}
 
 router.get('/', (req, res) => {
   res.render('home', {
@@ -42,7 +41,7 @@ router.get('/download', (req, res) => {
   // Path traversal is possible if user provides ../
   const resolvedPath = path.join(labDir, fileParam);
   
-  if (!resolvedPath.startsWith(path.join(__dirname))) {
+  if (!resolvedPath.startsWith(path.join(process.cwd(), 'labs', 'filevault'))) {
     return res.status(403).send('Forbidden: Access outside lab directory is restricted for safety.');
   }
 
@@ -69,7 +68,7 @@ router.get('/diagnostic', (req, res) => {
   // Let's check for command injection manually to grant completion if flag is found, but also actually execute if needed, or simulate it genuinely
   const simulatedCommand = 'ping ' + target;
   
-  exec(simulatedCommand, { cwd: __dirname }, (error, stdout, stderr) => {
+  exec(simulatedCommand, { cwd: path.join(process.cwd(), 'labs', 'filevault') }, (error, stdout, stderr) => {
     let output = stdout || stderr;
     
     // Windows might fail ping if options are wrong, but we want the injected part to run

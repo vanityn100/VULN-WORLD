@@ -3,7 +3,7 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 
-const uploadDir = path.join(__dirname, 'public', 'uploads');
+const uploadDir = path.join(process.cwd(), 'labs', 'profilehub', 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }

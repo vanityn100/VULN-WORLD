@@ -16,8 +16,8 @@ router.get('/learn/:vulnId', (req, res) => {
   const vuln = registry.vulnerabilities.find(v => v.id === req.params.vulnId);
   if (!vuln) return res.status(404).send('Vulnerability not found');
   
-  const customPath = path.join(__dirname, '..', 'views', 'learn', 'explanations', `${vuln.id}.ejs`);
-  if (fs.existsSync(customPath)) {
+  const customPath = path.join(process.cwd(), 'views', 'learn', 'explanations', `${vuln.id}.ejs`);
+  if (require('fs').existsSync(customPath)) {
     res.render(`learn/explanations/${vuln.id}`, { vuln });
   } else {
     res.render('learn/explanation', { vuln }); // Fallback

@@ -16,9 +16,9 @@ app.use(session({
 }));
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/shared', express.static(path.join(__dirname, 'public', 'shared')));
+app.set('views', path.join(process.cwd(), 'views'));
+app.use(express.static(path.join(process.cwd(), 'public')));
+app.use('/shared', express.static(path.join(process.cwd(), 'public', 'shared')));
 
 // Helper middleware to make registry available in hub views
 app.use((req, res, next) => {
@@ -36,16 +36,16 @@ registry.labs.forEach(lab => {
   // Each lab has its own views and public dir
   labApp.set('view engine', 'ejs');
   labApp.set('views', [
-    path.join(__dirname, 'labs', lab.id, 'views'),
-    path.join(__dirname, 'views') // Fallback to main views for partials
+    path.join(process.cwd(), 'labs', lab.id, 'views'),
+    path.join(process.cwd(), 'views') // Fallback to main views for partials
   ]);
   
   // Explicitly mount this lab's public directory at its root
   // so /labs/:labId/style.css maps to labs/:labId/public/style.css
-  labApp.use(express.static(path.join(__dirname, 'labs', lab.id, 'public')));
+  labApp.use(express.static(path.join(process.cwd(), 'labs', lab.id, 'public')));
   
   // Load the lab's router
-  const labRouter = require(path.join(__dirname, 'labs', lab.id, 'index.js'));
+  const labRouter = require(path.join(process.cwd(), 'labs', lab.id, 'index.js'));
   labApp.use('/', labRouter);
 
   // Mount on main app

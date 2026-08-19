@@ -3,6 +3,10 @@
   functions = "functions"
   publish = "public"
 
+[build.environment]
+  NODE_VERSION = "20"
+  AWS_LAMBDA_JS_RUNTIME = "nodejs20.x"
+
 [functions]
   included_files = ["views/**", "labs/**", "data/**", "public/**"]
   node_bundler = "esbuild"

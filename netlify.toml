@@ -1,0 +1,14 @@
+[build]
+  command = "npm install"
+  functions = "functions"
+  publish = "public"
+
+[functions]
+  included_files = ["views/**", "labs/**", "data/**"]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/app"
+  status = 200
+  force = true

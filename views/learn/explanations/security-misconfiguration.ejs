@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Security Misconfiguration happens when security settings are poorly defined, implemented, or maintained by default. This can be at any level of the application stack, including network services, platform, web server, application server, database, frameworks, and custom code.</p>
+
+    <h2>In Simple Words</h2>
+    <p>It’s like installing a state-of-the-art lock on your front door but leaving the default combination as "0000" or completely forgetting to engage the lock mechanism when you leave.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+      <li>Default passwords or accounts left enabled.</li>
+      <li>Unnecessary features enabled (e.g., extra ports, services, pages, accounts).</li>
+      <li>Outdated software with known flaws.</li>
+      <li>Improperly configured HTTP headers (like CORS or missing security headers).</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+App deployed to Production
+   |
+   V
+Developer forgot to change default admin password (admin:admin)
+   |
+   V
+Attacker logs in easily
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+POST /admin/login HTTP/1.1
+Host: example.com
+
+username=admin&password=password
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+      <li>Use Burp to observe HTTP response headers for missing security configurations (e.g., missing Strict-Transport-Security).</li>
+      <li>Check for permissive CORS configurations (e.g., Access-Control-Allow-Origin: *).</li>
+      <li>Attempt to log in to administrative panels using default credentials (admin/admin, root/root, etc.).</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code (CORS Misconfiguration):</p>
+    <pre class="vuln-code">
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // Allows any site to read data
+  next();
+});
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://trusted-site.com");
+  next();
+});
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+      <li>Unauthorized access to administrative panels.</li>
+      <li>Data theft due to missing or overly permissive access controls.</li>
+      <li>System takeover if default administrative software is accessible.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+      <li>Scan the application with automated tools to detect missing security headers and default configurations.</li>
+      <li>Attempt basic credential stuffing using known default passwords on login portals.</li>
+      <li>Inspect error pages to see if they leak framework versions or configuration details.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Implement a secure installation process. Remove or do not install unused features and frameworks. Change all default passwords immediately. Enforce security headers and maintain strong configuration management for all environments.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+      <li>Harden the platform and web server (e.g., disable directory listing).</li>
+      <li>Implement automated processes to verify configurations in all environments.</li>
+      <li>Keep all dependencies and software up to date.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>This lab demonstrates how a simple misconfiguration or left-over default setting can lead to a compromise. Review the application for any obvious flaws that a typical hardening process would remove, such as exposed configuration data or permissive access controls.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>The application was left with a configuration flaw, allowing unauthorized users to access restricted data or execute actions that should have been locked down. Proper configuration management, removing defaults, and disabling unnecessary features would have prevented this attack.</p>
+  </div>
+</body>
+</html>

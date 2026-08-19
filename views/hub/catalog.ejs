@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Catalog - Vuln-World</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #fafafa; color: #333; }
+    header { background: #111; color: #fff; padding: 20px; }
+    header a { color: #fff; text-decoration: none; font-weight: bold; }
+    .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: #fff; padding: 20px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+    .btn { display: inline-block; padding: 8px 15px; background: #eee; color: #333; text-decoration: none; border-radius: 4px; margin-top: 10px; font-size: 14px; }
+    .btn.primary { background: #0056b3; color: #fff; }
+    
+    .difficulty-legend { background: #e9ecef; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+    .difficulty-legend h3 { margin-top: 0; color: #333; }
+    .difficulty-legend ul { list-style: none; padding: 0; margin: 0; }
+    .difficulty-legend li { margin-bottom: 10px; }
+    .difficulty-legend strong { display: inline-block; width: 120px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">VULN-WORLD</a>
+  </header>
+  <div class="container">
+    <h2>Vulnerability Catalog</h2>
+    
+    <div class="difficulty-legend">
+      <h3>Difficulty Levels</h3>
+      <ul>
+        <li><strong>BEGINNER</strong> Learn the vulnerability.</li>
+        <li><strong>INTERMEDIATE</strong> Investigate the application.</li>
+        <li><strong>ADVANCED</strong> Analyze a realistic attack surface.</li>
+      </ul>
+    </div>
+
+    <div class="grid">
+      <% registry.vulnerabilities.forEach(vuln => { %>
+        <div class="card">
+          <h3><%= vuln.name %></h3>
+          <p>Category: <%= vuln.category %> | Difficulty: <%= vuln.difficulty %></p>
+          <a href="/learn/<%= vuln.id %>" class="btn primary">Learn</a>
+          <a href="/labs/<%= vuln.lab %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</body>
+</html>

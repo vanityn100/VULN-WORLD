@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>An Open Redirect vulnerability occurs when an application takes a parameter and redirects the user to the specified URL without properly validating the destination. This allows an attacker to construct a legitimate-looking URL that ultimately redirects victims to a malicious site.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine asking a security guard for directions to a specific room, and the guard blindly trusts a sticky note you give them with an address outside the building. The guard ends up escorting people out of the secure building and into a dangerous alleyway because they didn't check if the address was actually inside the building.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+      <li>Login pages (e.g., redirecting back to the previous page after successful login).</li>
+      <li>External link warning pages or "click tracking" endpoints.</li>
+      <li>OAuth or SSO implementations.</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+User clicks: https://trustedsite.com/login?next=http://evilsite.com
+   |
+   V
+Application logs user in.
+   |
+   V
+App redirects to "http://evilsite.com"
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /redirect?url=http://evil.com HTTP/1.1
+Host: example.com
+
+HTTP/1.1 302 Found
+Location: http://evil.com
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+      <li>Find endpoints that take a URL or path as a parameter.</li>
+      <li>Send the request to Repeater and modify the parameter to point to an external site like <code>http://example.com</code>.</li>
+      <li>If the server responds with a 3xx redirect status code and the `Location` header points to your external site, the application is vulnerable.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+app.get('/redirect', (req, res) => {
+  res.redirect(req.query.url);
+});
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+app.get('/redirect', (req, res) => {
+  const allowed = ['/home', '/dashboard'];
+  if (allowed.includes(req.query.url)) {
+    res.redirect(req.query.url);
+  } else {
+    res.redirect('/home');
+  }
+});
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+      <li>Phishing attacks targeting users who trust the original domain.</li>
+      <li>Theft of sensitive tokens (e.g., OAuth tokens leaked via Referer or URL fragments).</li>
+      <li>Bypassing SSRF or CORS protections in some scenarios.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+      <li>Look for parameters like `url`, `redirect`, `next`, `returnTo`, `go`.</li>
+      <li>Test bypass techniques like `//evil.com`, `https:evil.com`, or `/\evil.com`.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Maintain an allowlist of permitted redirect destinations. Avoid taking absolute URLs as input; instead, accept relative paths or use a token/ID mapped to a destination URL on the server side.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+      <li>Do not rely on user input for redirect targets.</li>
+      <li>If dynamic redirects are necessary, strictly validate the domain against a hardcoded list.</li>
+      <li>Ensure the redirect path starts with a single `/` and does not contain `//`.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>In this lab, there is a link that redirects you to a partner site. Try observing the URL structure when you click it. Modify the URL parameter to redirect the application to `http://evil.com` to complete the lab.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>By changing the `url` parameter to `http://evil.com`, you tricked the application into issuing a 302 redirect to your chosen domain. This was possible because the application failed to validate that the provided URL belonged to a trusted list of domains.</p>
+  </div>
+</body>
+</html>

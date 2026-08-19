@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= labName %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/shared/style.css">
+</head>
+<body class="bg-gray-100 antialiased font-sans">
+  <nav class="bg-blue-600 shadow-md p-4 flex justify-between items-center text-white sticky top-0 z-50">
+    <h1 class="text-2xl font-bold tracking-tight"><%= labName %></h1>
+    <div class="space-x-4 font-medium">
+      <a href="/labs/socialsphere" class="hover:text-blue-200 transition-colors">Home</a>
+      <a href="/labs/socialsphere/profile?id=<%= currentUser %>" class="hover:text-blue-200 transition-colors">My Profile</a>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-4 gap-6 px-4">
+    <!-- Left Sidebar -->
+    <aside class="hidden md:block col-span-1">
+      <div class="bg-white rounded-xl shadow-sm p-4 sticky top-24">
+        <a href="/labs/socialsphere/profile?id=<%= currentUser %>" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+          <span class="text-2xl">👩</span>
+          <span class="font-semibold text-gray-800">Alice Johnson</span>
+        </a>
+        <div class="mt-4 space-y-2">
+          <a href="#" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors">
+            <span>📰</span><span>News Feed</span>
+          </a>
+          <a href="#" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors">
+            <span>💬</span><span>Messenger</span>
+          </a>
+          <a href="#" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors">
+            <span>🔖</span><span>Saved</span>
+          </a>
+          <% if (currentRole === 'admin') { %>
+          <a href="/labs/socialsphere/admin" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 text-gray-400 text-sm mt-8 transition-colors">
+            <span>⚙️</span><span>Admin Settings</span>
+          </a>
+          <% } %>
+        </div>
+
+        <div class="mt-8 border-t pt-4">
+          <h3 class="text-gray-500 font-semibold mb-3 text-sm uppercase tracking-wider">Overall Progress</h3>
+          <ul class="text-sm space-y-2">
+            <li class="flex items-center"><span class="<%= completed.idorCompleted ? 'text-green-500' : 'text-gray-400' %> mr-2"><%= completed.idorCompleted ? '✅' : '○' %></span> IDOR</li>
+            <li class="flex items-center"><span class="<%= completed.xssCompleted ? 'text-green-500' : 'text-gray-400' %> mr-2"><%= completed.xssCompleted ? '✅' : '○' %></span> Stored XSS</li>
+            <li class="flex items-center"><span class="<%= completed.bacCompleted ? 'text-green-500' : 'text-gray-400' %> mr-2"><%= completed.bacCompleted ? '✅' : '○' %></span> Broken Access Control</li>
+            <li class="flex items-center"><span class="<%= completed.bolaCompleted ? 'text-green-500' : 'text-gray-400' %> mr-2"><%= completed.bolaCompleted ? '✅' : '○' %></span> BOLA</li>
+          </ul>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- Center Feed -->
+    <section class="col-span-1 md:col-span-2 space-y-6">
+      <!-- Active Challenge Banner -->
+      <div class="bg-white rounded-xl shadow-sm p-4 mb-6 border-l-4 border-blue-500">
+        <h2 class="text-lg font-bold">Active Challenge: <%= currentChallenge.name %></h2>
+        <p class="text-sm text-gray-600 mb-2"><%= currentChallenge.objective %></p>
+        <% if (currentChallenge.key && completed && completed[currentChallenge.key]) { %>
+           <div class="bg-green-100 text-green-800 p-2 rounded text-sm font-semibold mt-2">✅ <%= currentChallenge.name %> Complete!</div>
+        <% } else if (currentChallenge.key) { %>
+           <div class="bg-gray-100 text-gray-800 p-2 rounded text-sm mt-2 flex items-center">
+             <span class="mr-2">○</span> Investigation in progress...
+           </div>
+        <% } %>
+      </div>
+
+      <!-- Create Post -->
+      <div class="bg-white rounded-xl shadow-sm p-4">
+        <form action="/labs/socialsphere/posts" method="POST" class="space-y-4">
+          <input type="hidden" name="userId" value="<%= currentUser %>">
+          <div class="flex space-x-3">
+            <span class="text-3xl">👩</span>
+            <textarea name="content" placeholder="What's on your mind, Alice?" rows="2" class="w-full bg-gray-100 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"></textarea>
+          </div>
+          <div class="flex justify-end">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">Post</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Feed Posts -->
+      <% if (typeof posts !== 'undefined') { %>
+        <% posts.forEach(post => { %>
+          <article class="bg-white rounded-xl shadow-sm p-4 space-y-3">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-xl"><%= post.avatar %></div>
+              <a href="/labs/socialsphere/profile?id=<%= post.user_id %>" class="font-bold text-gray-900 hover:underline"><%= post.name %></a>
+            </div>
+            <div class="text-gray-800 leading-relaxed text-[15px] break-words">
+              <%- post.content %>
+            </div>
+            <div class="pt-2 border-t border-gray-100 flex space-x-4 text-gray-500 text-sm">
+              <button class="hover:text-blue-600 flex items-center space-x-1"><span>👍</span> <span>Like</span></button>
+              <button class="hover:text-blue-600 flex items-center space-x-1"><span>💬</span> <span>Comment</span></button>
+            </div>
+          </article>
+        <% }) %>
+      <% } %>
+    </section>
+
+    <!-- Right Sidebar -->
+    <aside class="hidden md:block col-span-1">
+      <div class="bg-white rounded-xl shadow-sm p-4 sticky top-24">
+        <h3 class="text-gray-500 font-semibold mb-4 pb-2 border-b">People You May Know</h3>
+        <div class="space-y-3">
+          <% if (typeof friends !== 'undefined') { %>
+            <% friends.forEach(friend => { %>
+              <a href="/labs/socialsphere/profile?id=<%= friend.id %>" class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                <span class="text-2xl"><%= friend.avatar %></span>
+                <span class="font-medium text-gray-800"><%= friend.name %></span>
+              </a>
+            <% }) %>
+          <% } %>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="max-w-6xl mx-auto px-4 mt-8">
+    <%- include('../../../views/partials/helper') %>
+  </div>
+  
+  <div class="text-center my-8">
+    <form action="/labs/socialsphere/reset" method="POST">
+      <button type="submit" class="bg-red-500 hover:bg-red-600 text-white py-1 px-4 rounded text-sm transition-colors">Reset Lab</button>
+    </form>
+  </div>
+</body>
+</html>

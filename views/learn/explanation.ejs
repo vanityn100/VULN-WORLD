@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #fff; color: #333; line-height: 1.6; }
+    header { background: #111; color: #fff; padding: 20px; }
+    header a { color: #fff; text-decoration: none; font-weight: bold; }
+    .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    .btn { display: inline-block; padding: 10px 20px; background: #0056b3; color: #fff; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+    .diagram { background: #f4f4f4; padding: 20px; font-family: monospace; white-space: pre; border-radius: 4px; border: 1px solid #ccc; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Catalog</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <p><strong>Category:</strong> <%= vuln.category %> | <strong>Difficulty:</strong> <%= vuln.difficulty %></p>
+    
+    <h2>1. What Is It?</h2>
+    <p>An explanation of <%= vuln.name %> goes here.</p>
+    
+    <h2>2. Visual Explanation</h2>
+    <div class="diagram">Browser
+   │
+   │ Request
+   ▼
+Server
+   │
+   │ Vulnerable logic
+   ▼
+Database</div>
+
+    <h2>3. Try The Lab</h2>
+    <a href="/labs/<%= vuln.lab %>" class="btn">Open Lab (<%= vuln.lab %>)</a>
+  </div>
+</body>
+</html>

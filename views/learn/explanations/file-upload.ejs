@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Insecure File Upload vulnerabilities occur when a web server allows users to upload files without sufficiently validating the file's name, type, contents, or size. If the uploaded file can be executed by the server as a script, this leads to Remote Code Execution (RCE).</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine a secure mailroom that only accepts postcards. One day, they stop checking what's inside the envelopes and someone mails a bomb. File upload vulnerabilities happen when the server expects a harmless image but blindly accepts and runs a malicious script.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+      <li>Profile picture uploads</li>
+      <li>Document or attachment features</li>
+      <li>CSV data imports</li>
+      <li>Content management systems (CMS) media libraries</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+Attacker uploads "shell.php" pretending it's a profile picture.
+    |
+[Web Server saves "shell.php" to /public/uploads/shell.php]
+    |
+Attacker visits http://site.com/uploads/shell.php
+    |
+[Web Server executes shell.php, granting the attacker control]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+POST /upload HTTP/1.1
+Host: example.com
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="file"; filename="shell.php"
+Content-Type: application/x-php
+
+&lt;?php system($_GET['cmd']); ?&gt;
+------WebKitFormBoundary--
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+      <li>Upload a harmless file (like `.jpg`) and intercept the request in Burp Suite.</li>
+      <li>Change the filename in the request from `image.jpg` to `shell.php`.</li>
+      <li>If blocked, try bypassing filters (e.g., `shell.php.jpg`, `shell.PHP`, `shell.phtml`).</li>
+      <li>Find where the file is stored and navigate to it in the browser to see if it executes.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+app.post('/upload', (req, res) => {
+  const file = req.files.profilePic;
+  // Saving the file directly with its original, unchecked name
+  file.mv('/var/www/html/uploads/' + file.name, (err) => {
+    res.send('Uploaded successfully!');
+  });
+});
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+app.post('/upload', (req, res) => {
+  const file = req.files.profilePic;
+  const ext = path.extname(file.name).toLowerCase();
+  
+  // Validate extension against strict allowlist
+  if (!['.jpg', '.png'].includes(ext)) {
+    return res.status(403).send('Invalid file type');
+  }
+  
+  // Generate a random, safe filename
+  const safeFilename = crypto.randomUUID() + ext;
+  file.mv('/var/www/uploads/' + safeFilename, (err) => {
+    res.send('Uploaded successfully!');
+  });
+});
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+      <li>Remote Code Execution (RCE) and full server takeover.</li>
+      <li>Defacement of the website by overwriting legitimate files.</li>
+      <li>Cross-Site Scripting (XSS) if HTML/SVG files are uploaded and served.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+      <li>Test different executable extensions for the server environment (e.g., `.php`, `.jsp`, `.asp`, `.py`).</li>
+      <li>Try double extensions (`file.php.jpg`) or null byte injection (`file.php%00.jpg`).</li>
+      <li>Check if uploading `.svg` files allows Stored XSS.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Never trust the user-provided filename or Content-Type header. Always enforce a strict allowlist of file extensions and validate the actual file contents (magic bytes). Store uploaded files in a directory that does not have execution permissions, or ideally, store them on an external storage service (like AWS S3) rather than the local filesystem.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+      <li>Use a strict extension allowlist.</li>
+      <li>Generate a random filename server-side (do not use the original filename).</li>
+      <li>Serve files with `X-Content-Type-Options: nosniff` and disable execution in the upload folder.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>In this lab, there's a feature to upload a new profile picture. Investigate what happens when you upload a normal image versus a file with an executable extension like `.php` or `.js`. Can you upload a file that shouldn't be allowed?</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>The application accepted your uploaded file without verifying its extension. It only saved the file using the original name you provided. By uploading a file with a dangerous extension like `.php`, you proved that an attacker could upload a web shell and achieve Remote Code Execution on the server.</p>
+  </div>
+</body>
+</html>

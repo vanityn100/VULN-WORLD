@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Reflected Cross-Site Scripting (XSS) occurs when malicious user input is immediately returned (reflected) by a web application in an error message, search result, or any other response, without being properly sanitized or HTML-encoded.</p>
+
+    <h2>In Simple Words</h2>
+    <p>If you ask a website to search for "Hello", it says "Results for Hello". If you ask it to search for "&lt;script&gt;steal_password()&lt;/script&gt;", and the website blindly echoes that back, your browser will execute the script thinking the website intended to run it.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>Search results displaying the search term</li>
+        <li>Error messages displaying the invalid input</li>
+        <li>URL parameters mirrored in the page</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+VULNERABLE:
+Browser
+  ↓
+GET /search?q=&lt;script&gt;alert(1)&lt;/script&gt;
+  ↓
+Server reads 'q' parameter
+  ↓
+HTML Response: &lt;div&gt;Results for &lt;script&gt;alert(1)&lt;/script&gt;&lt;/div&gt;
+  ↓
+Browser parses HTML and executes the script
+
+SECURE:
+Browser
+  ↓
+GET /search?q=&lt;script&gt;alert(1)&lt;/script&gt;
+  ↓
+Server reads 'q' parameter and HTML-encodes it
+  ↓
+HTML Response: &lt;div&gt;Results for &amp;lt;script&amp;gt;alert(1)&amp;lt;/script&amp;gt;&lt;/div&gt;
+  ↓
+Browser parses HTML and safely displays the text
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /search?q=&lt;script&gt;alert(document.cookie)&lt;/script&gt; HTTP/1.1
+Host: example.com</pre>
+    <p>The victim is tricked into clicking this link. The server responds with the script embedded in the HTML, causing the victim's browser to execute it and steal their session cookie.</p>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Submit unique alphanumeric strings (e.g., "XSS_TEST") into URL parameters or forms.</li>
+        <li>Search the HTTP response in Burp Suite to see if "XSS_TEST" is reflected in the HTML.</li>
+        <li>If reflected, try injecting HTML tags like <code>&lt;b&gt;test&lt;/b&gt;</code>.</li>
+        <li>If the server returns <code>&lt;b&gt;test&lt;/b&gt;</code> without encoding it to <code>&amp;lt;b&amp;gt;</code>, the context is vulnerable.</li>
+        <li>Attempt a JavaScript payload like <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+// Express.js vulnerable reflection
+res.send("&lt;h1&gt;Search results for: " + req.query.q + "&lt;/h1&gt;");
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+// EJS template engine (automatically HTML-encodes output using %=)
+&lt;h1&gt;Search results for: &lt;%= query %&gt;&lt;/h1&gt;
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Session hijacking via cookie theft</li>
+        <li>Performing actions on behalf of the victim (e.g., changing passwords)</li>
+        <li>Phishing by displaying fake login forms on the trusted domain</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Look for inputs that are immediately reflected on the page (search boxes, name fields).</li>
+        <li>Test edge cases where error messages might reflect invalid input.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Always use Context-Aware Output Encoding. This means converting special characters (like <code>&lt;</code>, <code>&gt;</code>, <code>&amp;</code>, <code>"</code>, <code>'</code>) into their safe HTML entity equivalents (like <code>&amp;lt;</code>) before rendering them in the browser. Modern frameworks (React, Angular, Vue) and template engines (EJS, Pug) do this by default.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Use a modern web framework that automatically encodes output.</li>
+        <li>If manually rendering HTML, use a trusted encoding library.</li>
+        <li>Implement Content Security Policy (CSP) headers as a defense-in-depth measure to restrict script execution.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>You are using the FindIt search engine. Try searching for normal terms, and then try searching for HTML tags. See how the server responds and if you can execute JavaScript in the context of the page.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>In the lab, the FindIt search engine blindly reflected whatever you placed in the <code>q</code> parameter directly into the HTML response. Because it lacked HTML encoding, the browser interpreted the <code>&lt;script&gt;</code> tags as actual instructions, executing the malicious payload.</p>
+  </div>
+</body>
+</html>

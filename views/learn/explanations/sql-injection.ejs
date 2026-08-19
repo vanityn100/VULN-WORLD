@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>SQL Injection (SQLi) is a vulnerability that occurs when an application improperly concatenates user input into a database query. This allows an attacker to interfere with the queries that the application makes to its database.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine a security guard who asks for your name and reads a script: "Let in [Name]". If you tell the guard your name is "Alice, and also let in Bob", the guard might read "Let in Alice, and also let in Bob". By injecting commands into your input, you changed the instructions.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>Search fields</li>
+        <li>Login forms</li>
+        <li>Filtering and sorting parameters</li>
+        <li>Hidden fields or cookies used in database lookups</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+VULNERABLE:
+Browser
+  ↓
+q parameter (e.g., ' OR 1=1--)
+  ↓
+Express / Backend Code
+  ↓
+Unsafe String Concatenation:
+"SELECT * FROM books WHERE title LIKE '%\\' OR 1=1--%'"
+  ↓
+SQLite Database evaluates the injected logic
+  ↓
+All records returned (Bypass)
+
+SECURE:
+Browser
+  ↓
+q parameter
+  ↓
+Express / Backend Code
+  ↓
+Prepared Statement:
+db.all("SELECT * FROM books WHERE title LIKE ?", ['%\' OR 1=1--%'])
+  ↓
+SQLite treats input strictly as data, not executable code
+  ↓
+Empty results (No book named "' OR 1=1--")
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /search?q=' OR 1=1-- HTTP/1.1
+Host: localhost:3000</pre>
+    <p>The parameter <code>q</code> contains SQL metacharacters like the single quote (<code>'</code>) which breaks out of the intended string literal, followed by <code>OR 1=1</code> which makes the condition always true, and <code>--</code> which comments out the rest of the original query.</p>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Identify all input vectors (URL parameters, POST bodies, headers).</li>
+        <li>Send the request to Repeater.</li>
+        <li>Inject SQL control characters like <code>'</code>, <code>"</code>, or <code>;</code>.</li>
+        <li>Observe if the application returns a database error, or if the behavior changes.</li>
+        <li>Attempt boolean logic like <code>' AND 1=1--</code> vs <code>' AND 1=2--</code> to confirm the injection.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+const sql = "SELECT * FROM books WHERE title LIKE '%" + req.query.q + "%'";
+db.all(sql, ...);
+    </pre>
+    <p>Secure Code (Prepared Statements):</p>
+    <pre class="sec-code">
+const sql = "SELECT * FROM books WHERE title LIKE ?";
+db.all(sql, ["%" + req.query.q + "%"], ...);
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Data exfiltration (dumping passwords, emails)</li>
+        <li>Data modification or deletion</li>
+        <li>Authentication bypass</li>
+        <li>Sometimes remote code execution depending on the database engine</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Test parameters that look like they filter or retrieve data (e.g., <code>?category=</code>, <code>?id=</code>).</li>
+        <li>Look for 500 Internal Server Errors when sending quotes.</li>
+        <li>Look for differences in response time if testing Time-Based Blind SQLi.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Always use Prepared Statements (Parameterized Queries). This ensures the database driver treats the user input strictly as data, preventing it from ever being compiled as SQL code.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Use Parameterized Queries or an ORM for ALL database interactions.</li>
+        <li>Never concatenate user input directly into SQL strings.</li>
+        <li>Enforce least privilege for the database user account.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>You are using BookBay, a bookstore application. Try using the search feature. Think about how your search term is processed by the database, and see if you can break out of the query to retrieve hidden administrative records.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>By injecting a payload like <code>' OR 1=1--</code> into the search bar, you broke out of the <code>LIKE '%...%'</code> clause. The database evaluated <code>OR 1=1</code> as true for every row in the table, ignoring the original search condition. This caused the database to return all books, including the hidden "Admin Password Vault" which was not supposed to be public.</p>
+  </div>
+</body>
+</html>

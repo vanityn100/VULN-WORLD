@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProjectHub | Workspace</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-800">
+  <!-- Navigation -->
+  <nav class="bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 flex items-center">
+            <svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <span class="ml-3 font-bold text-xl text-slate-900">ProjectHub</span>
+          </div>
+          <div class="hidden md:ml-6 md:flex md:space-x-8">
+            <a href="#" class="border-blue-500 text-slate-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Dashboard</a>
+            <a href="#" class="border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Tasks</a>
+            <a href="#" class="border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Team</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+    <div class="mb-8 flex justify-between items-center">
+      <h1 class="text-3xl font-bold text-slate-900">Active Projects</h1>
+      <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow-sm">New Project</button>
+    </div>
+
+    <!-- Project List -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+      <ul role="list" class="divide-y divide-slate-200">
+        <li>
+          <div class="px-4 py-4 sm:px-6 hover:bg-slate-50 cursor-pointer" onclick="fetchProjectDetails('P-101')">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium text-blue-600 truncate">Website Redesign</p>
+              <div class="ml-2 flex-shrink-0 flex">
+                <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">On Track</p>
+              </div>
+            </div>
+            <div class="mt-2 sm:flex sm:justify-between">
+              <div class="sm:flex">
+                <p class="flex items-center text-sm text-slate-500">ID: P-101</p>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <div class="px-4 py-4 sm:px-6 hover:bg-slate-50 cursor-pointer" onclick="fetchProjectDetails('P-102')">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium text-blue-600 truncate">Mobile App Alpha</p>
+              <div class="ml-2 flex-shrink-0 flex">
+                <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Delayed</p>
+              </div>
+            </div>
+            <div class="mt-2 sm:flex sm:justify-between">
+              <div class="sm:flex">
+                <p class="flex items-center text-sm text-slate-500">ID: P-102</p>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Project Detail Modal/Card -->
+    <div id="projectDetail" class="hidden mt-8 bg-white shadow sm:rounded-lg border border-slate-200 p-6">
+      <h3 class="text-lg leading-6 font-medium text-slate-900" id="pd-title">Project Details</h3>
+      <div class="mt-2 max-w-xl text-sm text-slate-500">
+        <p id="pd-desc">Select a project to view details.</p>
+        <pre id="pd-debug" class="mt-4 hidden p-4 bg-slate-900 text-green-400 rounded text-xs overflow-x-auto"></pre>
+      </div>
+    </div>
+
+    <!-- API Key Submission for Lab Completion -->
+    <div class="mt-12 bg-white shadow sm:rounded-lg p-6 max-w-xl">
+      <h3 class="text-lg font-medium text-slate-900">Lab Challenge</h3>
+      <p class="text-sm text-slate-500 mt-1">Submit the secret backend API key to complete the lab.</p>
+      <form action="/labs/projecthub/submit_key" method="POST" class="mt-4 flex gap-3">
+        <input type="text" name="key" class="flex-1 rounded-md border-slate-300 border shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2" placeholder="AKIA-...">
+        <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-slate-800 hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900">
+          Verify Key
+        </button>
+      </form>
+      <% if (completed) { %>
+        <div class="mt-4 bg-green-50 border-l-4 border-green-400 p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-green-700 font-medium">Lab Completed! You found the leaked API key.</p>
+            </div>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <div class="mt-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+    <%- include('../../../views/partials/helper') %>
+  </div>
+
+  <script>
+    async function fetchProjectDetails(id) {
+      const detailDiv = document.getElementById('projectDetail');
+      const titleEl = document.getElementById('pd-title');
+      const descEl = document.getElementById('pd-desc');
+      const debugEl = document.getElementById('pd-debug');
+      
+      detailDiv.classList.remove('hidden');
+      titleEl.innerText = "Loading...";
+      descEl.innerText = "";
+      debugEl.classList.add('hidden');
+
+      try {
+        const res = await fetch('/labs/projecthub/api/projects/' + id);
+        const data = await res.json();
+        
+        if (res.ok) {
+          titleEl.innerText = data.name;
+          descEl.innerText = data.description;
+        } else {
+          titleEl.innerText = "Error Loading Project";
+          descEl.innerText = data.error;
+          // The UI carelessly renders the entire response context if there's an error
+          if (data.debugContext) {
+            debugEl.classList.remove('hidden');
+            debugEl.innerText = JSON.stringify(data.debugContext, null, 2);
+          }
+        }
+      } catch (err) {
+        titleEl.innerText = "Network Error";
+        descEl.innerText = err.message;
+      }
+    }
+  </script>
+</body>
+</html>

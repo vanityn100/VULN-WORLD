@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Privilege Escalation occurs when a user exploits a flaw to gain higher levels of access than they were originally intended to have. A common vector is Mass Assignment, where a framework automatically binds user-supplied input to internal database objects, allowing attackers to overwrite sensitive properties (like `role` or `isAdmin`).</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine filling out a form at a clinic. You're supposed to write your name and address. But you sneak in a line saying "Role: Head Doctor". The receptionist copies the whole form into the system blindly, and suddenly you're prescribing medication.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>Profile update forms.</li>
+        <li>User registration endpoints.</li>
+        <li>APIs handling JSON objects.</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+[Attacker] --(POST /profile { email: "a@b.com", role: "admin" })--> [Server]
+[Server]   --(Object.assign(user, req.body))--> [Database]
+[Server]   --(user.role is now "admin")--> [Server]
+[Attacker is now Admin!]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+PUT /api/users/me HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+
+{
+  "email": "hacker@example.com",
+  "role": "admin"
+}
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Submit a normal profile update request and intercept it in Burp Suite.</li>
+        <li>Observe the parameters being sent.</li>
+        <li>Add new parameters that you suspect might exist in the database (e.g., `role`, `isAdmin`, `is_admin`, `permissions`).</li>
+        <li>Forward the request and check if your privileges have changed.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+// Blindly assigning all incoming request body fields to the user object
+Object.assign(user, req.body);
+user.save();
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+// Explicitly picking only the allowed fields to update
+user.email = req.body.email;
+user.bio = req.body.bio;
+user.save();
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Vertical Privilege Escalation (User -> Admin).</li>
+        <li>Complete system compromise.</li>
+        <li>Bypassing payment or subscription checks (e.g., `plan="premium"`).</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Use Burp Param Miner to discover hidden parameters.</li>
+        <li>Guess common administrative field names during object creation or updates.</li>
+        <li>Inspect API documentation or frontend JavaScript to find fields the server might accept.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Never automatically bind client input directly to server-side objects or database models. Always use an explicit allow-list of fields that are permitted to be updated by the user (Data Transfer Objects or explicitly mapped properties).</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Are input properties explicitly mapped to internal objects?</li>
+        <li>Is mass assignment explicitly disabled in the framework?</li>
+        <li>Are sensitive fields (`role`, `status`, `balance`) protected from modification by normal users?</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>Try updating your profile email. When you intercept this request, try adding an extra field like `role` or `isAdmin`. Can you elevate your privileges by injecting properties the application blindly accepts?</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>The application suffered from a Mass Assignment vulnerability. When processing profile updates, the backend used `Object.assign()` to merge the entire request body into the user's data object. By adding `role="admin"` to the form data, an attacker overwrote their role, achieving immediate Vertical Privilege Escalation.</p>
+  </div>
+</body>
+</html>

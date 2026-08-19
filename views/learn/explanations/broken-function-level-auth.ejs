@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Broken Function Level Authorization (BFLA) is a specific type of Access Control vulnerability often found in APIs. It occurs when a low-privileged user can execute functions or methods (like POST, PUT, DELETE) that should be restricted to higher-privileged users.</p>
+
+    <h2>In Simple Words</h2>
+    <p>It's like a regular bank customer being able to press the "Approve Loan" button just because they found the internal URL for the loan approval page. The bank checks that you are a customer, but fails to verify that you are a Loan Officer before executing the function.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>Administrative API endpoints (e.g., <code>POST /api/v1/users/create</code>).</li>
+        <li>HTTP Method changes (e.g., you can <code>GET /api/users</code>, but can you <code>DELETE /api/users/1</code>?).</li>
+        <li>Hidden buttons in Single Page Applications (SPAs).</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+VULNERABLE:
+Browser
+  ↓
+DELETE /api/users/2
+  ↓
+Server verifies Alice is logged in (Authentication ✓)
+  ↓
+Server executes deletion logic WITHOUT checking role (Authorization ❌)
+  ↓
+User deleted!
+
+SECURE:
+Browser
+  ↓
+DELETE /api/users/2
+  ↓
+Server verifies Alice is logged in
+  ↓
+Server checks if Alice has 'Admin' role
+  ↓
+Alice is 'User' → 403 Forbidden
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+PUT /api/users/1/role HTTP/1.1
+Host: example.com
+Cookie: session=standard_user_session
+
+{"role": "admin"}</pre>
+    <p>If the API endpoint <code>/api/users/:id/role</code> does not check the permissions of the user making the request, any user can promote themselves to admin.</p>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Intercept normal requests using Burp Proxy.</li>
+        <li>Identify endpoints that seem to perform administrative actions.</li>
+        <li>Send the request to Repeater.</li>
+        <li>Change the HTTP method (e.g., from GET to POST/PUT/DELETE) and see if the server processes it.</li>
+        <li>Analyze API documentation (if leaked) for endpoints you shouldn't have access to.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Developers often assume that because a button is hidden from the user interface, the user cannot trigger the underlying API endpoint. They apply authorization checks to the UI, but forget to apply them to the API route itself.</p>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Privilege escalation (e.g., changing your own role).</li>
+        <li>Account deletion or modification.</li>
+        <li>Bypassing business flows.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Implement a centralized authorization mechanism. Ensure that every function, route, and API endpoint verifies the user's role against a defined set of permissions before executing any logic.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Deny access by default for all API endpoints.</li>
+        <li>Explicitly define which roles can access which endpoints.</li>
+        <li>Test vertical access control (standard user vs. admin).</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>Look for hidden administrative functions or attempt to manipulate API endpoints that should be restricted to administrators.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>Similar to Broken Access Control, you were able to access the <code>/admin</code> function because the server only verified your authentication state, not your function-level authorization role.</p>
+  </div>
+</body>
+</html>

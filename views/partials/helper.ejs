@@ -1,0 +1,102 @@
+<style>
+  #vuln-helper-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #007bff;
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    z-index: 10000;
+    transition: transform 0.2s;
+  }
+  #vuln-helper-btn:hover { transform: scale(1.1); }
+  
+  #vuln-helper-panel {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 350px;
+    background: white;
+    color: #333;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    z-index: 9999;
+    display: none;
+    overflow: hidden;
+    border: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+  }
+  
+  .vh-header { background: #343a40; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+  .vh-close { cursor: pointer; color: #aaa; }
+  .vh-close:hover { color: white; }
+  
+  .vh-body { padding: 15px; overflow-y: auto; flex-grow: 1; }
+  .vh-section-title { font-size: 12px; text-transform: uppercase; color: #6c757d; font-weight: bold; margin-bottom: 5px; margin-top: 15px; }
+  .vh-section-title:first-child { margin-top: 0; }
+  
+  .vh-objective { background: #f8f9fa; padding: 10px; border-left: 3px solid #007bff; font-size: 14px; margin-bottom: 15px; }
+  
+  .vh-hint-btn { background: #e9ecef; border: none; padding: 8px; width: 100%; text-align: left; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-size: 13px; color: #495057; }
+  .vh-hint-btn:hover { background: #dee2e6; }
+  .vh-hint-content { display: none; padding: 10px; background: #fff3cd; border-left: 3px solid #ffc107; font-size: 13px; margin-bottom: 10px; }
+  
+  .vh-notes { width: 100%; height: 120px; font-family: monospace; font-size: 12px; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; resize: vertical; box-sizing: border-box; }
+  .vh-notes-template { font-size: 10px; color: #6c757d; margin-bottom: 4px; }
+
+  .vh-footer { border-top: 1px solid #eee; padding: 10px 15px; display: flex; justify-content: space-between; background: #f8f9fa; }
+  .vh-footer a, .vh-footer button { font-size: 13px; color: #007bff; text-decoration: none; background: none; border: none; cursor: pointer; padding: 0; }
+  .vh-footer a:hover, .vh-footer button:hover { text-decoration: underline; }
+  .vh-reset { color: #dc3545 !important; }
+</style>
+
+<div id="vuln-helper-btn" onclick="document.getElementById('vuln-helper-panel').style.display = 'flex'">?</div>
+
+<div id="vuln-helper-panel" style="display: none;">
+  <div class="vh-header">
+    <span>Investigation</span>
+    <span class="vh-close" onclick="document.getElementById('vuln-helper-panel').style.display = 'none'">✖</span>
+  </div>
+  <div class="vh-body">
+    <div class="vh-section-title">Objective</div>
+    <div class="vh-objective">
+      <%= typeof labObjective !== 'undefined' ? labObjective : 'Explore the application normally, identify interesting parameters, and investigate how the server handles them.' %>
+    </div>
+    
+    <% if (typeof labHints !== 'undefined' && labHints.length > 0) { %>
+      <div class="vh-section-title">Hints</div>
+      <% labHints.forEach((hint, idx) => { %>
+        <button class="vh-hint-btn" onclick="document.getElementById('hint-<%= idx %>').style.display = 'block'">Show Hint <%= idx + 1 %></button>
+        <div id="hint-<%= idx %>" class="vh-hint-content"><%= hint %></div>
+      <% }) %>
+    <% } %>
+
+    <div class="vh-section-title">Investigation Notes</div>
+    <div class="vh-notes-template">Record your findings here:</div>
+    <textarea class="vh-notes" placeholder="Endpoint:
+Method:
+Parameter:
+Object:
+Authenticated user:
+Expected authorization:
+Actual response:"></textarea>
+  </div>
+  <div class="vh-footer">
+    <a href="/vulnerabilities">← Exit Lab</a>
+    <form action="<%= typeof resetPath !== 'undefined' ? resetPath : '#' %>" method="POST" style="margin:0;">
+      <button type="submit" class="vh-reset">Reset Lab</button>
+    </form>
+  </div>
+</div>

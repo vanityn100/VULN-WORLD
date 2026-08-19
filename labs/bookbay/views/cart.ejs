@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= labName %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/shared/style.css">
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-slate-900 text-white">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/labs/bookbay" class="text-2xl font-bold text-amber-500 hover:text-amber-400 transition">📚 <%= labName %></a>
+      <div class="flex-grow max-w-2xl mx-6">
+        <form action="/labs/bookbay/search" method="GET" class="flex w-full rounded-md overflow-hidden shadow-sm">
+          <input type="text" name="q" placeholder="Search..." class="flex-grow px-4 py-2 text-gray-900 outline-none">
+          <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-6 py-2 font-semibold">Search</button>
+        </form>
+      </div>
+      <a href="/labs/bookbay/cart" class="flex items-center space-x-1 hover:text-amber-500 transition">
+        <span class="text-2xl">🛒</span><span class="font-bold">Cart <span class="text-amber-500">(<%= cartItemCount %>)</span></span>
+      </a>
+    </div>
+  </header>
+  <main class="max-w-7xl mx-auto px-4 py-8">
+
+    <h1 class="text-2xl font-bold text-slate-900 mb-6">Shopping Cart</h1>
+    <% if (cart.length === 0) { %>
+      <div class="bg-white p-8 rounded-lg shadow-sm border border-gray-200 text-center">
+        <p class="text-lg text-gray-600 mb-4">Your cart is empty.</p>
+        <a href="/labs/bookbay" class="text-blue-600 hover:underline">Continue Shopping</a>
+      </div>
+    <% } else { %>
+      <div class="flex flex-col lg:flex-row gap-6">
+        <div class="lg:w-3/4 space-y-4">
+          <% cart.forEach(item => { %>
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center">
+              <div>
+                <h3 class="font-bold text-slate-900"><%= item.title %></h3>
+                <p class="text-gray-600 text-sm">$<%= item.price.toFixed(2) %></p>
+              </div>
+              <div class="flex items-center space-x-4">
+                <form action="/labs/bookbay/cart/update" method="POST" class="flex items-center space-x-2">
+                  <input type="hidden" name="bookId" value="<%= item.bookId %>">
+                  <input type="number" name="quantity" value="<%= item.quantity %>" min="1" class="w-16 border border-gray-300 rounded px-2 py-1">
+                  <button type="submit" class="text-sm bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded">Update</button>
+                </form>
+                <form action="/labs/bookbay/cart/remove" method="POST">
+                  <input type="hidden" name="bookId" value="<%= item.bookId %>">
+                  <button type="submit" class="text-red-500 hover:text-red-700 text-sm font-semibold">Remove</button>
+                </form>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+        <div class="lg:w-1/4">
+          <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 sticky top-4">
+            <h3 class="font-bold text-lg mb-4">Order Summary</h3>
+            <div class="flex justify-between mb-4 text-lg">
+              <span>Subtotal:</span>
+              <span class="font-bold">$<%= subtotal.toFixed(2) %></span>
+            </div>
+            <a href="/labs/bookbay/checkout" class="block w-full text-center bg-amber-400 hover:bg-amber-500 text-slate-900 font-bold py-3 rounded-full transition-colors shadow-sm">
+              Proceed to Checkout
+            </a>
+          </div>
+        </div>
+      </div>
+    <% } %>
+
+  </main>
+  <div class="max-w-7xl mx-auto px-4 mt-8"><%- include('../../../views/partials/helper') %></div>
+  <footer class="bg-slate-900 mt-16 py-8"><div class="max-w-7xl mx-auto px-4 text-center"><form action="/labs/bookbay/reset" method="POST"><button type="submit" class="text-slate-400 hover:text-white text-sm transition-colors hover:underline">Reset Lab Environment</button></form></div></footer>
+</body>
+</html>

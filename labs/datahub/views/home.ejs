@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DataHub - Enterprise Data Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+  <nav class="bg-teal-700 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+          </svg>
+          <span class="font-bold text-xl tracking-wide">DataHub</span>
+        </div>
+        <div>
+          <form action="<%= resetPath %>" method="POST" class="inline">
+            <button type="submit" class="bg-teal-600 hover:bg-teal-500 text-white px-4 py-2 rounded text-sm font-medium transition shadow-sm border border-teal-500">Reset Session</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="mb-8">
+      <h1 class="text-3xl font-extrabold text-gray-900">Your Data Dashboard</h1>
+      <p class="mt-2 text-sm text-gray-600">Access and export your enterprise analytics data securely.</p>
+    </div>
+
+    <% if (isCompleted) { %>
+      <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-8 rounded shadow-sm">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-green-800">Flag Captured!</h3>
+            <div class="mt-2 text-sm text-green-700">
+              <p>You successfully accessed the admin data. FLAG: DataHubPwned</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% } %>
+
+    <div class="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
+      <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">API Data Viewer</h3>
+      </div>
+      <div class="p-6">
+        <div class="flex items-center space-x-4 mb-6">
+          <button id="fetchBtn" class="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded shadow transition focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
+            Load My Profile Data
+          </button>
+          <span id="loadingIndicator" class="text-gray-500 text-sm hidden">Loading...</span>
+        </div>
+
+        <div id="dataContainer" class="hidden">
+          <label class="block text-sm font-medium text-gray-700 mb-2">API Response:</label>
+          <pre id="jsonOutput" class="bg-gray-900 text-green-400 p-4 rounded-md overflow-x-auto text-sm font-mono"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Required Helper -->
+    <div class="mt-12">
+      <%- include('../../../views/partials/helper') %>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('fetchBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('fetchBtn');
+      const container = document.getElementById('dataContainer');
+      const output = document.getElementById('jsonOutput');
+      const loading = document.getElementById('loadingIndicator');
+
+      btn.disabled = true;
+      loading.classList.remove('hidden');
+      
+      try {
+        // Fetch data for the current user (ID 1)
+        const response = await fetch('/labs/datahub/api/data/1');
+        
+        if (response.ok) {
+          const data = await response.json();
+          output.textContent = JSON.stringify(data, null, 2);
+          container.classList.remove('hidden');
+        } else {
+          output.textContent = 'Error: ' + response.status + ' ' + response.statusText;
+          container.classList.remove('hidden');
+          output.classList.replace('text-green-400', 'text-red-400');
+        }
+      } catch (err) {
+        output.textContent = 'Network Error: ' + err.message;
+        container.classList.remove('hidden');
+        output.classList.replace('text-green-400', 'text-red-400');
+      } finally {
+        btn.disabled = false;
+        loading.classList.add('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

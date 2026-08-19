@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Insecure Direct Object Reference (IDOR) occurs when an application provides direct access to objects based on user-supplied input. As a result of this vulnerability attackers can bypass authorization and access resources in the system directly.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine a hotel. Your room key opens room 101. If changing "101" to "102" in a request lets you enter another guest's room, the system is checking that you have a key, but not whether the room belongs to you.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>User profiles (<code>GET /api/profile/45</code>)</li>
+        <li>Orders or Invoices (<code>GET /api/orders/123</code>)</li>
+        <li>Documents (<code>GET /download?fileId=98</code>)</li>
+        <li>Messages or support tickets</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+VULNERABLE:
+Browser
+  ↓
+Request contains object ID (e.g., ?id=2)
+  ↓
+Server authenticates user (e.g., Alice is logged in)
+  ↓
+Server retrieves object (User 2 / Bob)
+  ↓
+❌ No authorization check
+  ↓
+Object returned
+
+SECURE:
+Browser
+  ↓
+Request contains object ID (e.g., ?id=2)
+  ↓
+Server authenticates user (e.g., Alice is logged in)
+  ↓
+Server retrieves object (User 2 / Bob)
+  ↓
+✓ Authorization check (Does User 2 belong to Alice?)
+  ↓
+NO → 403 Forbidden
+    </div>
+
+    <h2>Authentication vs Authorization</h2>
+    <p><strong>Authentication</strong> means "Who are you?" (Alice logs in successfully).</p>
+    <p><strong>Authorization</strong> means "What are you allowed to access?" (Is Alice allowed to view Bob's profile?). Being authenticated does NOT automatically mean being authorized to access every object.</p>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /api/orders/1002 HTTP/1.1
+Host: example.local
+Cookie: session=alice</pre>
+    <p>Here, the Cookie identifies the authenticated user (Alice). The ID <code>1002</code> identifies the requested object. The server must verify that Alice owns order 1002.</p>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Open the application normally and navigate to an object you own (e.g., your profile).</li>
+        <li>Turn Burp Proxy on and capture the request.</li>
+        <li>Identify identifiers in the URL, query parameters, or body.</li>
+        <li>Send the request to Repeater.</li>
+        <li>Change the identifier to another user's ID (e.g., from 1 to 2).</li>
+        <li>Determine whether the server returns unauthorized data or properly enforces authorization.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+// The developer retrieves whatever ID the client supplied without checking ownership.
+const user = db.getUser(req.params.id);
+res.json(user);
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+const user = db.getUser(req.params.id);
+
+// Check if the requested user's ID matches the authenticated session user
+if (!user || user.id !== req.session.userId) {
+    return res.status(403).json({ error: "Forbidden" });
+}
+res.json(user);
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Private profile exposure</li>
+        <li>Other users' invoices or orders exposed</li>
+        <li>Unauthorized modification or deletion of data</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Look for paths like <code>/user/123</code> or <code>/order/456</code></li>
+        <li>Look for parameters like <code>?id=</code>, <code>?userId=</code>, <code>?orderId=</code></li>
+        <li>Look for JSON body fields like <code>{"userId": 123}</code></li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>To remediate IDOR, implement strict server-side authorization. Never trust client-supplied object identifiers. Always verify that the authenticated user owns or has permission to access the requested object.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Never trust user-controlled object IDs</li>
+        <li>Check authorization server-side</li>
+        <li>Check ownership and roles</li>
+        <li>Deny by default</li>
+        <li>Use indirect object references (like random GUIDs) to prevent enumeration</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>You are logged in as Alice. Explore SocialSphere normally. Pay attention to requests related to creating and viewing content. Your goal is to determine whether the application properly verifies which user owns an object, and exploit it if it doesn't.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>In the lab, you manipulated the <code>userId</code> parameter in the POST /posts request. Although you were authenticated as Alice, the server blindly trusted the <code>userId</code> you submitted (e.g., Bob's ID). Because the server did not verify that <code>req.body.userId === req.session.userId</code>, it assigned ownership of the post to Bob. This demonstrates how trusting client-provided identifiers without server-side validation leads to IDOR/BOLA.</p>
+  </div>
+</body>
+</html>

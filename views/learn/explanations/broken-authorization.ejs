@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Broken Authorization, often referred to as Insecure Direct Object References (IDOR) or Broken Object Level Authorization (BOLA), occurs when an application provides access to an object simply based on user-supplied input without properly verifying if the user has permission to access it.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine a bank teller asking for your account number to give you a withdrawal. You say "Account 555" (someone else's account). The teller hands you the money without checking if you are actually the owner of Account 555.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>APIs fetching data using IDs (e.g., `/api/users/123`).</li>
+        <li>Document or file download links (`download.php?file=secret.pdf`).</li>
+        <li>Action endpoints (`/deleteMessage?id=42`).</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+[Attacker (User 1)] --(GET /api/data/1)--> [Server]
+[Server]            --(Returns User 1 Data)--> [Attacker]
+
+[Attacker (User 1)] --(GET /api/data/2)--> [Server]
+[Server]            --(No auth check! Returns User 2 Data)--> [Attacker steals data!]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /api/messages/998 HTTP/1.1
+Host: api.example.com
+Cookie: session=attacker_session
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Identify any IDs, numbers, or identifiers in URLs, headers, or request bodies.</li>
+        <li>Change the identifier to one belonging to another user.</li>
+        <li>If the application successfully processes the request and returns the other user's data (or performs an action on it), it is vulnerable.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+// Assuming that because they are logged in, they are allowed to see the data
+const userId = req.params.id;
+const data = db.getUserData(userId);
+res.send(data);
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+// Checking ownership before returning data
+const requestedId = req.params.id;
+const currentUserId = req.session.userId;
+
+if (requestedId !== currentUserId && !req.session.isAdmin) {
+    return res.status(403).send("Forbidden");
+}
+const data = db.getUserData(requestedId);
+res.send(data);
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Unauthorized data disclosure (Horizontal Privilege Escalation).</li>
+        <li>Unauthorized data modification or deletion.</li>
+        <li>Mass data scraping if IDs are sequential and predictable.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Use tools like Burp Suite's Autorize extension to automate IDOR testing across roles.</li>
+        <li>Test boundary cases (e.g., trying negative IDs, or changing UUIDs).</li>
+        <li>Create two accounts and attempt to access Account B's resources using Account A's session.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Implement strict access control checks on every endpoint that accesses data based on user input. Ensure that the object being requested is owned by the user requesting it. Additionally, consider using unguessable identifiers (UUIDs/GUIDs) instead of sequential integers, though this is only defense-in-depth, not a replacement for proper authorization checks.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Are authorization checks performed at the object level?</li>
+        <li>Is ownership validated before returning or modifying data?</li>
+        <li>Are direct references replaced with indirect references where possible?</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>You are logged in as user ID 1. Notice the URL when you fetch your data: `/api/data/1`. What happens if you modify the URL to fetch data for user ID 2? Does the server check if you own the data?</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>The application checked if you were logged in by verifying the presence of a session cookie, but it critically failed to verify if the requested resource actually belonged to you. By simply changing the numeric ID in the URL, you successfully bypassed object-level authorization (IDOR/BOLA) and viewed the administrator's sensitive data.</p>
+  </div>
+</body>
+</html>

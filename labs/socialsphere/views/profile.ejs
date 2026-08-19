@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile | <%= labName %></title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <style>
+    .social-nav { background: #1877f2; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .social-nav h1 { margin: 0; font-size: 20px; font-weight: bold; }
+    .social-nav .nav-links a { color: white; margin-left: 15px; text-decoration: none; font-weight: 500; }
+    
+    .profile-container { max-width: 900px; margin: 20px auto; background: white; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); overflow: hidden; }
+    .cover-photo { height: 250px; background: linear-gradient(to right, #74ebd5, #acb6e5); position: relative; }
+    .profile-header { display: flex; padding: 0 30px 20px; position: relative; }
+    .profile-avatar { font-size: 80px; background: white; border: 4px solid white; border-radius: 50%; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; margin-top: -60px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .profile-info { margin-top: 15px; margin-left: 20px; flex-grow: 1; }
+    .profile-info h2 { margin: 0; font-size: 28px; color: #050505; }
+    .profile-info p { margin: 5px 0 0; color: #65676b; font-size: 16px; }
+    
+    .profile-body { display: grid; grid-template-columns: 350px 1fr; gap: 20px; padding: 20px; background: #f0f2f5; }
+    .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .card h3 { margin-top: 0; font-size: 18px; color: #050505; border-bottom: 1px solid #e4e6eb; padding-bottom: 10px; margin-bottom: 15px; }
+    
+    .info-row { margin-bottom: 15px; }
+    .info-label { font-weight: bold; color: #65676b; font-size: 14px; display: block; margin-bottom: 5px; }
+    .info-value { color: #050505; }
+    
+    .private-badge { display: inline-block; background: #ffe4e6; color: #e11d48; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+    
+    .status-banner { background: #d4edda; color: #155724; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #c3e6cb; }
+  </style>
+</head>
+<body style="background: #f0f2f5; padding: 0;">
+
+  <div class="social-nav">
+    <h1><%= labName %></h1>
+    <div class="nav-links">
+      <a href="/labs/socialsphere">Home</a>
+      <a href="/labs/socialsphere/profile?id=<%= currentUser %>">My Profile</a>
+    </div>
+  </div>
+
+  <div class="container" style="max-width: 900px; background: transparent; padding: 0; margin-top: 20px; box-shadow: none;">
+    <div class="status-banner" style="background: white; border: 1px solid #e4e6eb; border-left: 4px solid #1877f2;">
+      <h2 style="margin-top:0; font-size: 18px; color: #050505;">Active Challenge: <%= currentChallenge.name %></h2>
+      <p style="margin: 5px 0; color: #65676b; font-size: 14px;"><%= currentChallenge.objective %></p>
+      <% if (currentChallenge.key && completed && completed[currentChallenge.key]) { %>
+         <div style="background: #d4edda; color: #155724; padding: 8px; border-radius: 4px; font-size: 13px; font-weight: bold; margin-top: 10px;">✅ <%= currentChallenge.name %> Complete!</div>
+      <% } else if (currentChallenge.key) { %>
+         <div style="background: #f0f2f5; color: #65676b; padding: 8px; border-radius: 4px; font-size: 13px; margin-top: 10px;">○ Investigation in progress...</div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="profile-container" id="profile-content" style="display: none;">
+    <div class="cover-photo"></div>
+    <div class="profile-header">
+      <div class="profile-avatar" id="avatar"></div>
+      <div class="profile-info" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div>
+          <h2 id="name"></h2>
+          <p id="username"></p>
+        </div>
+        <% if (parseInt(profileId) === parseInt(currentUser)) { %>
+        <div>
+          <a href="/labs/socialsphere/profile/edit" style="background: #e4e6eb; color: #050505; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-weight: 600;">Edit Profile</a>
+        </div>
+        <% } %>
+      </div>
+    </div>
+    
+    <div class="profile-body">
+      <div class="card">
+        <h3>Intro</h3>
+        <div class="info-row">
+          <span class="info-label">Bio</span>
+          <span class="info-value" id="bio"></span>
+        </div>
+        
+        <div class="info-row" style="margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 15px;">
+          <h3>Private Contact Info <span class="private-badge">Only you</span></h3>
+          <span class="info-label">Email</span>
+          <span class="info-value" id="email"></span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Phone</span>
+          <span class="info-value" id="phone"></span>
+        </div>
+      </div>
+      
+      <div>
+        <div class="card">
+          <h3 style="color: #65676b; font-weight: normal; text-align: center; border: none; padding: 20px;">
+            No recent posts to display.
+          </h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%- include('../../../views/partials/helper') %>
+  
+  <script>
+    // Front-end logic to explicitly fetch profile via API so Burp intercepts it naturally
+    const profileId = "<%= profileId %>";
+    
+    fetch('/labs/socialsphere/api/profile/' + profileId)
+      .then(res => res.json())
+      .then(data => {
+        if(data.error) {
+          alert(data.error);
+          return;
+        }
+        document.getElementById('avatar').innerText = data.public.avatar;
+        document.getElementById('name').innerText = data.public.name;
+        document.getElementById('username').innerText = '@' + data.public.username;
+        document.getElementById('bio').innerText = data.public.bio;
+        
+        // These fields are intentionally leaked by the IDOR vulnerability
+        document.getElementById('email').innerText = data.private.email;
+        document.getElementById('phone').innerText = data.private.phone;
+        
+        document.getElementById('profile-content').style.display = 'block';
+      })
+      .catch(err => console.error(err));
+  </script>
+</body>
+</html>

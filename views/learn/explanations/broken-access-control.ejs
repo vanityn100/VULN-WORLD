@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Broken Access Control is a broad category of vulnerabilities that occur when an application fails to properly restrict what authenticated users are allowed to do. It often manifests as a normal user gaining access to administrative pages or functions.</p>
+
+    <h2>In Simple Words</h2>
+    <p>If a bank customer walks into the manager's office because the door was left unlocked, access control is broken. The customer is allowed in the building (authenticated), but they shouldn't be in that specific office (unauthorized).</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>Admin panels located at predictable URLs (<code>/admin</code>, <code>/dashboard</code>).</li>
+        <li>Unprotected API endpoints (<code>DELETE /api/users/1</code>).</li>
+        <li>Functions hidden in the UI but accessible via direct URL navigation.</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+VULNERABLE:
+Browser
+  ↓
+GET /admin
+  ↓
+Server verifies Alice is logged in (Authentication ✓)
+  ↓
+Server DOES NOT check if Alice is an Administrator (Authorization ❌)
+  ↓
+Admin Panel returned
+
+SECURE:
+Browser
+  ↓
+GET /admin
+  ↓
+Server verifies Alice is logged in
+  ↓
+Server verifies Alice's role (Is she 'admin'?)
+  ↓
+Alice is 'user' → 403 Forbidden
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /admin/delete_user?id=5 HTTP/1.1
+Host: example.com
+Cookie: session=standard_user_session</pre>
+    <p>Even though the <code>Delete User</code> button is hidden from the standard user's interface, they can simply type the URL into their browser or craft the HTTP request. The server blindly executes it.</p>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Log in as a low-privileged user.</li>
+        <li>Map out the application. Look for administrative endpoints in JavaScript files (e.g., searching for <code>/admin</code>).</li>
+        <li>Attempt to access these URLs directly in the browser or via Burp Repeater.</li>
+        <li>If the server returns sensitive data or allows the action, access control is broken.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+router.get('/admin', (req, res) => {
+    // Only checks if the user is logged in
+    if (!req.session.userId) return res.redirect('/login');
+    
+    res.render('admin_panel');
+});
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+router.get('/admin', (req, res) => {
+    if (!req.session.userId) return res.redirect('/login');
+    
+    // Checks if the user actually has the required role
+    if (req.session.role !== 'admin') {
+        return res.status(403).send("Forbidden");
+    }
+    
+    res.render('admin_panel');
+});
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Complete application takeover if an attacker accesses admin functions.</li>
+        <li>Unauthorized data deletion or modification.</li>
+        <li>Privilege escalation.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Analyze client-side JavaScript for hidden routes (often found in frontend routers like React Router).</li>
+        <li>Use tools like Burp Suite's Autorize extension to automatically repeat high-privileged requests using low-privileged cookies.</li>
+        <li>Guess common administrative paths (<code>/admin</code>, <code>/administrator</code>, <code>/config</code>).</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Enforce authorization checks on the server-side for every request. Implement Role-Based Access Control (RBAC) and verify the user's role against the required permissions of the endpoint. Never rely on simply hiding buttons in the UI.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Check authorization server-side, not just client-side.</li>
+        <li>Deny access by default.</li>
+        <li>Test APIs separately for role enforcement.</li>
+        <li>Log access control failures.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>You are logged in as a standard user on SocialSphere. Look closely at the sidebar options. Is there a way to access administrative settings even though you aren't an admin?</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>In the lab, you found a hidden link to <code>/admin</code> in the HTML source or sidebar. When you navigated to it, the server verified that you had an active session, but failed to verify that your <code>role</code> was set to <code>admin</code>. It blindly returned the administrative panel and user list.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>JSON Web Tokens (JWT) are a popular standard for securely transmitting information. However, vulnerabilities arise when they are poorly implemented. Common flaws include using easily guessable signing secrets, failing to verify the signature at all, or trusting the `alg` header (like accepting the "none" algorithm) which allows attackers to forge tokens.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine a VIP pass for a concert. The pass has your name on it, and the security guard stamps it with a unique seal. If the guard's stamp is just a cheap sticker you can buy at a dollar store, or if the guard doesn't even look for the stamp, you can easily make your own VIP pass.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>Authentication Bearer tokens in API requests.</li>
+        <li>Session cookies stored in the browser.</li>
+        <li>OAuth integrations.</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+[Attacker] --(Extracts JWT from cookie)--> [Attacker]
+[Attacker] --(Modifies payload to role=admin)--> [Attacker]
+[Attacker] --(Signs token with cracked secret 'secret')--> [Attacker]
+[Attacker] --(Sends forged JWT)--> [Server]
+[Server]   --(Signature is valid!)--> [Admin Access Granted]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /admin/dashboard HTTP/1.1
+Host: api.example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIn0.forged_signature_here
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Capture a request containing a JWT (often starting with `eyJ`).</li>
+        <li>Send the token to the JWT Editor extension in Burp or use jwt.io to decode it.</li>
+        <li>Try altering the header to `{"alg": "none"}` and removing the signature.</li>
+        <li>Alternatively, try offline brute-forcing the HMAC secret if it's an HS256 token.</li>
+        <li>Modify the payload (e.g., `role: "admin"`), resign if necessary, and replay the request.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+// Using a weak secret or trusting the algorithm provided by the client
+const secret = 'secret'; 
+const decoded = jwt.decode(token); // Doesn't verify signature!
+// OR accepting "none" algorithm
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+// Enforcing a specific algorithm and using a strong, random secret
+const secret = process.env.JWT_STRONG_SECRET;
+const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Authentication bypass.</li>
+        <li>Privilege escalation.</li>
+        <li>Complete system compromise if administrative privileges are attained.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Check if the application accepts tokens with no signature (alg="none").</li>
+        <li>Run dictionary attacks against the JWT signature to see if the secret is weak.</li>
+        <li>Attempt to change the algorithm from RS256 to HS256 (Algorithm Confusion).</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Always verify the JWT signature. Hardcode or tightly restrict the acceptable cryptographic algorithms (`algorithms: ['RS256']`). Use strong, long, and unpredictable secret keys for HMAC-based tokens. Never rely solely on `jwt.decode()`; always use `jwt.verify()`.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Is the signature actively verified on every request?</li>
+        <li>Is the 'none' algorithm explicitly rejected?</li>
+        <li>Are strong, complex secrets used for symmetric signing (HS256)?</li>
+        <li>Are asymmetric keys properly protected (RS256)?</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>Examine the cookie received after logging in. Decode the JWT. What happens if you try to forge the token by changing the `alg` header to "none" and removing the signature? Alternatively, can you crack the secret key offline?</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>The application utilized a JWT for authentication but suffered from critical flaws: it accepted the `none` algorithm, and additionally, used a very weak signing key ('secret'). An attacker could effortlessly bypass security by either stripping the signature and setting `alg: none` or by offline brute-forcing the weak secret to forge a token with an administrative role.</p>
+  </div>
+</body>
+</html>

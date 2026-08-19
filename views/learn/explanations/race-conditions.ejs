@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>A Race Condition occurs when a system attempts to perform two or more operations at the same time, but because of timing issues, the operations overlap in a way that causes unexpected behavior. This often happens when checking a value and then acting on it (Time-of-Check to Time-of-Use).</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine you have $100 in the bank, and you try to withdraw $100 from two different ATMs at the exact same millisecond. Both ATMs check your balance simultaneously, see $100, and dispense the money before the balance is updated. You walk away with $200!</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+      <li>Applying discount codes</li>
+      <li>Withdrawing or transferring funds</li>
+      <li>Voting systems or purchasing limited-stock items</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+Req 1: Check Stock (Stock=1)
+Req 2: Check Stock (Stock=1)
+Req 1: Dispense Item
+Req 2: Dispense Item
+Req 1: Update Stock (Stock=0)
+Req 2: Update Stock (Stock=-1)
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>POST /buy HTTP/1.1
+Host: example.com
+(Sent 20 times concurrently using automated tools)</pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+      <li>Find an action that changes a state or balance (like buying a limited item).</li>
+      <li>Send the request to Burp Repeater or Intruder.</li>
+      <li>Use the "Send group in parallel" feature or configure Intruder to use multiple concurrent threads.</li>
+      <li>Observe if the action succeeds more times than it should have.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+if (stock > 0) {
+  // Database update might be slow
+  stock = stock - 1;
+  completePurchase();
+}</pre>
+    <p>Secure Code (Using Database Locks):</p>
+    <pre class="sec-code">
+// Using a transaction with a lock
+db.transaction(async (tx) => {
+  const item = await tx.query('SELECT stock FROM items WHERE id = 1 FOR UPDATE');
+  if (item.stock > 0) {
+    await tx.query('UPDATE items SET stock = stock - 1 WHERE id = 1');
+    completePurchase();
+  }
+});</pre>
+
+    <h2>Impact</h2>
+    <ul>
+      <li>Financial loss through double-spending</li>
+      <li>Inventory corruption (negative stock)</li>
+      <li>Bypassing limits (e.g., rate limits, voting limits)</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+      <li>Look for endpoints that check a limit or balance before acting.</li>
+      <li>Send concurrent requests at the exact same millisecond using specialized tools (e.g., Turbo Intruder).</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Use database locking mechanisms (like `SELECT ... FOR UPDATE` in SQL) or atomic operations to ensure that once a process starts checking and modifying a value, no other process can access it until the first process finishes.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+      <li>Use atomic operations for critical updates (e.g., `UPDATE items SET stock = stock - 1 WHERE stock > 0`).</li>
+      <li>Implement database transactions and row-level locks.</li>
+      <li>Avoid relying on application-level locks in distributed systems without a central lock manager like Redis.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>In this lab, there is only one exclusive item available. You need to purchase more than one. Use an interception tool to send multiple purchase requests concurrently, exploiting the gap between the server checking the stock and updating it.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>You successfully launched a race condition attack by sending parallel requests. Because the server processed multiple requests simultaneously, they all passed the `stock > 0` check before the first request could reduce the stock. As a result, you bought multiple items and drove the stock into the negative.</p>
+  </div>
+</body>
+</html>

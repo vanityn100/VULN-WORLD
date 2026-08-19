@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>A Business Logic vulnerability occurs when an application's rules or logic are flawed, allowing an attacker to manipulate the system to achieve an unintended result. Unlike technical bugs like SQL Injection, business logic flaws are specific to the application's domain.</p>
+
+    <h2>In Simple Words</h2>
+    <p>It's like finding a loophole in a store's return policy. The store says "You get $10 for every item you return," but they don't check if you actually bought the item from them. You use the loophole to get free money.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+      <li>E-commerce carts and checkout processes</li>
+      <li>Discounts and coupon code applications</li>
+      <li>Financial transactions and funds transfers</li>
+      <li>Multi-step workflows (e.g., bypassing a payment step)</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+[Attacker] --(Adds item with negative quantity)--> [Server]
+[Server]   --(Calculates total: 100 * -1 = -100)--> [Cart]
+[Server]   --(Refunds attacker $100 instead of charging)--> [Attacker]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>POST /checkout HTTP/1.1
+Host: example.com
+
+productId=123&quantity=-5</pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+      <li>Identify a key business workflow (like purchasing an item).</li>
+      <li>Intercept the request in Burp Proxy.</li>
+      <li>Modify parameters that control logic (like changing quantity to a negative number).</li>
+      <li>Forward the request and observe the application's response and state.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+let total = 0;
+cart.forEach(item => {
+  total += item.price * item.quantity;
+});
+user.balance -= total;</pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+let total = 0;
+cart.forEach(item => {
+  if (item.quantity <= 0) throw new Error("Invalid quantity");
+  total += item.price * item.quantity;
+});
+user.balance -= total;</pre>
+
+    <h2>Impact</h2>
+    <ul>
+      <li>Financial loss for the company</li>
+      <li>Unauthorized access to premium features</li>
+      <li>Data corruption or state manipulation</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+      <li>Test edge cases (negative numbers, extremely large numbers).</li>
+      <li>Attempt to skip steps in a multi-step process (e.g., go straight to shipping without paying).</li>
+      <li>Test for unintended interactions between different features (e.g., applying two different discounts simultaneously).</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Always validate input strictly on the server side. Ensure that quantities are positive, amounts are within expected ranges, and users complete all required steps in a workflow.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+      <li>Do not rely on client-side validation.</li>
+      <li>Define strict valid ranges for all numeric inputs.</li>
+      <li>Enforce state transitions on the server (e.g., ensure "Payment Complete" state is reached before "Shipping").</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>In this lab, you need to manipulate your cart to get a refund instead of paying for items. Pay attention to what data is sent when you add an item to the cart, and see if you can modify it to decrease your total balance to a negative number before checking out.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>You successfully modified the quantity of an item to a negative number. Because the server didn't validate that the quantity was positive, it multiplied the price by a negative number, resulting in a negative total. When the server subtracted the negative total from your balance, it actually added money to your account, completing the exploit.</p>
+  </div>
+</body>
+</html>

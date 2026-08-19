@@ -1,0 +1,342 @@
+Running Comprehensive Subagent Test Suite...
+
+============================
+Executing test_accounthub.js...
+Testing AccountHub lab...
+[+] Logging in as default user...
+[+] Logged in. Cookie: auth_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InVzZXIiLCJyb2xlIjoidXNlciJ9.sh2s92l0JPYWY4qoJQn8TjzTfcyIM8_L78rxwi_3BSc
+[+] Updating profile with role=admin...
+[+] Verifying lab completion state...
+[+] Lab completed successfully! Flag found.
+AccountHub tests passed.
+
+============================
+Executing test_bookbay.js...
+Starting BookBay Test...
+Session Cookie: connect.sid=s%3A-68nD9MsdimI5U7kFjiZdwv5JW59hAOm.qhOUYC6%2BiKzSqt7eA9QCQ9%2Bzqc0g7Cv%2FE67FaBkER%2FM
+Searched for 'Art'.
+Performed SQLi search.
+PASS: SQLi Completed (in search response)
+PASS: SQLi Completed (in home response)
+
+============================
+Executing test_datahub.js...
+Testing DataHub lab...
+[+] Getting session...
+Set-Cookie Header: [
+  'session_id=user_1_session; Path=/',
+  'connect.sid=s%3AqFCSRjstUVBsVS52Usycy6GMk8ujf3WF.EwXXYTKS79xRmgjk%2B%2FFGpAB61I7FQmX6Tu5pvwb0%2FJc; Path=/; HttpOnly'
+]
+[+] Normal user requesting data (ID=1)...
+[+] Normal user data fetched.
+[+] Exploiting IDOR: Requesting data for ID=2...
+[+] Admin data accessed. Checking lab completion status...
+[+] Lab completed successfully! Flag found.
+DataHub tests passed.
+
+============================
+Executing test_dropmart.js...
+--- Testing DropMart Lab ---
+[*] Accessing dropmart homepage...
+[+] Session Cookie: connect.sid=s%3ApjNL0C2h17MqC0s0XSKf6ss0bf6Vvf8Q.A1bh33Ayum%2BfGG%2FB%2FVtJ6nwy98bNe5WAUYMrTgoCjVA
+[+] Lab reset
+[*] Normal Workflow: Buying one item...
+[+] Normal Buy Status: 302
+[*] Normal Workflow: Attempting to buy a second item (should fail)...
+[+] Second Normal Buy Status: 302
+[+] Lab reset for race condition test
+[*] Manipulated Workflow: Triggering Race Condition with 5 parallel requests...
+[+] Sent 5 parallel requests.
+    Request 1 status: 302
+    Request 2 status: 302
+    Request 3 status: 302
+    Request 4 status: 302
+    Request 5 status: 302
+[*] Verifying Lab Completion...
+[+] SUCCESS: Lab completion verified!
+
+============================
+Executing test_edit_profile.js...
+Cookie: connect.sid=s%3AHLn1FNVbFBwyUtdXAHV4K0WaL5sfXL3l.e6JIVhZLF6ta1eQE9F1FP494Y8DJOm1o0MFnqlvq2T4
+Edit Profile Response Code: 302
+Redirect Location: /labs/socialsphere/profile/edit?success=1
+Profile Data API Output: {"public":{"id":1,"name":"Alice Hacked","username":"alice_h","avatar":"≡ƒæ⌐","bio":"Cybersecurity learner"},"private":{"email":"alice@example.com","phone":"555-0101"}}
+PASS: Profile updated correctly.
+
+============================
+Executing test_filevault.js...
+Starting FileVault Test...
+Session Cookie: connect.sid=s%3AnI4y2IJdxGW3-58dO2GI3TBFBT06HolV.oaA7kFQdXN%2F9hskhMatGV7h2vbIEB2ubi%2Fu%2B4iZuutU
+Downloaded public.txt
+Downloaded ../secret.txt via traversal
+Ran normal ping
+Ran command injection
+PASS: FileVault Completed
+
+============================
+Executing test_findit.js...
+Starting FindIt Test...
+Session Cookie: connect.sid=s%3AiyCLQe8IxcVBJsfaYFgKZXPPy5CoTTMf.mksyEgancRJrtyjCzIdUQSV9IAdSQorqs857t2pm5bk
+Searched for 'Hello'.
+Performed XSS search.
+PASS: Reflected XSS Completed (in search response)
+PASS: Reflected XSS Completed (in home response)
+
+============================
+Executing test_linkhub.js...
+Testing LinkHub Lab...
+[+] Simulating normal workflow...
+  -> Normal workflow passed (redirects correctly).
+[+] Simulating manipulated request (Open Redirect)...
+  -> Open Redirect attack successful.
+[+] Verifying lab completion state...
+  -> Lab marked as complete.
+LinkHub tests passed!
+
+
+============================
+Executing test_mailbox.js...
+Testing MailBox lab...
+[+] Normal user logging in...
+[+] Normal user logged in successfully.
+[+] Forging admin cookie...
+[+] Accessing lab as admin...
+[+] Lab completed successfully! Flag found.
+MailBox tests passed.
+
+============================
+Executing test_paydesk.js...
+--- Testing PayDesk Lab ---
+[*] Accessing paydesk homepage...
+[+] Session Cookie: connect.sid=s%3AA63dNEuEqQJvESUxnd-smJjIGSdQZU00.%2FwoZ06r1Gj83598KDJ05ivg2lq7l6YffQPUToN%2B2YHg
+[*] Normal Workflow: Transferring $50 to friend...
+[+] Normal Transfer Status: 302
+[*] Manipulated Workflow: Simulating CSRF attack to transfer to "attacker"...
+[+] CSRF Transfer Status: 302
+[*] Verifying Lab Completion...
+[+] SUCCESS: Lab completion verified!
+
+============================
+Executing test_pixdrop.js...
+Starting PixDrop Test...
+Session Cookie: connect.sid=s%3AiJyoPuJ8VWr-q7xf7hZVyNXOSeumTxaN.c4UZduo3P0bg%2FrXAqSzo9%2BbPEXoANkGHORFJXsdoJDI
+Imported public image.
+Imported protected internal resource.
+Final body:  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PixDrop - Media Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col">
+  <nav class="bg-indigo-600 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-2">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span class="font-bold text-xl tracking-wider">PixDrop</span>
+        </div>
+        <div class="flex space-x-4">
+          <a href="#" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500">Explore</a>
+          <a href="#" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500">Upload</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-grow max-w-7xl w-full mx-auto py-10 sm:px-6 lg:px-8">
+    
+      <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-sm">
+        <strong class="font-bold">Γ£ô Investigation Complete:</strong> You successfully exploited SSRF!
+      </div>
+    
+    <div class="bg-white rounded-lg shadow px-5 py-6 sm:px-6">
+      <h2 class="text-2xl font-bold mb-4 text-gray-900">Import Media</h2>
+      <p class="text-gray-600 mb-6">Quickly import high-quality images from the web directly into your workspace. Note: We restrict imports to partner networks.</p>
+      
+      <form action="/labs/pixdrop/import" method="GET" class="space-y-4 max-w-lg">
+        <div>
+          <label for="url" class="block text-sm font-medium text-gray-700">Image Source URL</label>
+          <div class="mt-1 flex rounded-md shadow-sm">
+            <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+              URL
+            </span>
+            <input type="text" name="url" id="url" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="http://localhost:3000/labs/pixdrop/lab-internal/public" required>
+          </div>
+        </div>
+        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Import Image
+        </button>
+      </form>
+    </div>
+
+    <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 opacity-75">
+       <div class="bg-gray-200 h-48 rounded-lg flex items-center justify-center text-gray-500 border border-gray-300">Gallery Image 1</div>
+       <div class="bg-gray-200 h-48 rounded-lg flex items-center justify-center text-gray-500 border border-gray-300">Gallery Image 2</div>
+       <div class="bg-gray-200 h-48 rounded-lg flex items-center justify-center text-gray-500 border border-gray-300">Gallery Image 3</div>
+    </div>
+  </main>
+
+  <div class="mt-16 container mx-auto px-4 pb-8">
+    <style>
+  #vuln-helper-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #007bff;
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    z-index: 10000;
+    transition: transform 0.2s;
+  }
+  #vuln-helper-btn:hover { transform: scale(1.1); }
+  
+  #vuln-helper-panel {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 320px;
+    background: white;
+    color: #333;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    z-index: 9999;
+    display: none;
+    overflow: hidden;
+    border: 1px solid #ddd;
+  }
+  
+  .vh-header { background: #343a40; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+  .vh-close { cursor: pointer; color: #aaa; }
+  .vh-close:hover { color: white; }
+  
+  .vh-body { padding: 15px; max-height: 400px; overflow-y: auto; }
+  .vh-section-title { font-size: 12px; text-transform: uppercase; color: #6c757d; font-weight: bold; margin-bottom: 5px; margin-top: 15px; }
+  .vh-section-title:first-child { margin-top: 0; }
+  
+  .vh-objective { background: #f8f9fa; padding: 10px; border-left: 3px solid #007bff; font-size: 14px; margin-bottom: 15px; }
+  
+  .vh-hint-btn { background: #e9ecef; border: none; padding: 8px; width: 100%; text-align: left; border-radius: 4px; cursor: pointer; margin-bottom: 5px; font-size: 13px; color: #495057; }
+  .vh-hint-btn:hover { background: #dee2e6; }
+  .vh-hint-content { display: none; padding: 10px; background: #fff3cd; border-left: 3px solid #ffc107; font-size: 13px; margin-bottom: 10px; }
+  
+  .vh-footer { border-top: 1px solid #eee; padding: 10px 15px; display: flex; justify-content: space-between; background: #f8f9fa; }
+  .vh-footer a, .vh-footer button { font-size: 13px; color: #007bff; text-decoration: none; background: none; border: none; cursor: pointer; padding: 0; }
+  .vh-footer a:hover, .vh-footer button:hover { text-decoration: underline; }
+  .vh-reset { color: #dc3545 !important; }
+</style>
+
+<div id="vuln-helper-btn" onclick="document.getElementById('vuln-helper-panel').style.display = 'block'">?</div>
+
+<div id="vuln-helper-panel">
+  <div class="vh-header">
+    <span>Investigation</span>
+    <span class="vh-close" onclick="document.getElementById('vuln-helper-panel').style.display = 'none'">Γ£û</span>
+  </div>
+  <div class="vh-body">
+    <div class="vh-section-title">Objective</div>
+    <div class="vh-objective">
+      Exploit the Server-Side Request Forgery (SSRF) vulnerability in the image importer to read the internal protected data at http://localhost:3000/labs/pixdrop/lab-internal/protected
+    </div>
+    
+    
+      <div class="vh-section-title">Hints</div>
+      
+        <button class="vh-hint-btn" onclick="document.getElementById('hint-0').style.display = 'block'">Show Hint 1</button>
+        <div id="hint-0" class="vh-hint-content">Notice the /import endpoint takes a &#39;url&#39; parameter.</div>
+      
+        <button class="vh-hint-btn" onclick="document.getElementById('hint-1').style.display = 'block'">Show Hint 2</button>
+        <div id="hint-1" class="vh-hint-content">Try passing standard web URLs to see how the server fetches them.</div>
+      
+        <button class="vh-hint-btn" onclick="document.getElementById('hint-2').style.display = 'block'">Show Hint 3</button>
+        <div id="hint-2" class="vh-hint-content">What happens if you pass an internal URL like http://localhost:3000/labs/pixdrop/lab-internal/protected?</div>
+      
+        <button class="vh-hint-btn" onclick="document.getElementById('hint-3').style.display = 'block'">Show Hint 4</button>
+        <div id="hint-3" class="vh-hint-content">SSRF allows you to make the server fetch resources on your behalf.</div>
+      
+    
+  </div>
+  <div class="vh-footer">
+    <a href="/vulnerabilities">ΓåÉ Exit Lab</a>
+    <form action="/labs/pixdrop/reset" method="POST" style="margin:0;">
+      <button type="submit" class="vh-reset">Reset Lab</button>
+    </form>
+  </div>
+</div>
+
+  </div>
+</body>
+</html>
+PASS: SSRF Completed
+
+============================
+Executing test_profilehub.js...
+Starting ProfileHub Test...
+Session Cookie: connect.sid=s%3AZHNVg2XPJZLn243JmY-0a5nzv7NwkhF1.%2FT49karFhyLn%2BJacR8RFsvWkqwbBiIZTG%2B%2BoHJAhcnw
+Uploaded normal avatar.
+Uploaded malicious shell.php.
+PASS: File Upload Completed
+
+============================
+Executing test_projecthub.js...
+Testing ProjectHub Lab...
+[+] Simulating normal workflow...
+  -> Normal workflow passed.
+[+] Simulating manipulated request (Info Disclosure)...
+  -> Info Disclosure successful.
+[+] Submitting extracted API key...
+[+] Verifying lab completion state...
+  -> Lab marked as complete.
+ProjectHub tests passed!
+
+
+============================
+Executing test_shopzone.js...
+--- Testing ShopZone Lab ---
+[*] Accessing shopzone homepage...
+[+] Session Cookie: connect.sid=s%3AAt0yWT6cLH_8QDmXkS2zSQ6__yQTC_1T.SJTSx9a%2Fc27CDaHnmXQwGXPE5nYCSKgZ6mKZbsl%2Bc5U
+[*] Normal Workflow: Adding ProBook X14 to cart...
+[+] Normal Add to Cart Status: 302
+[*] Normal Workflow: Checkout...
+[+] Normal Checkout Status: 302
+[*] Manipulated Workflow: Adding item with negative quantity to increase balance...
+[+] Manipulated Add to Cart Status: 302
+[*] Manipulated Workflow: Checkout to apply refund...
+[+] Manipulated Checkout Status: 302
+[*] Verifying Lab Completion...
+[+] SUCCESS: Lab completion verified!
+
+============================
+Executing test_socialsphere.js...
+Starting SocialSphere Test...
+Session Cookie: connect.sid=s%3AMo8_SQkzK2okgmA_k0NcToDMmRr_bGOr.Hd45NIsjo9d7EF8idQwrVsjzY3K2%2BhJ4hRuxILMvjCY
+Created normal post.
+Created IDOR post.
+Created XSS post.
+PASS: IDOR Completed
+PASS: Stored XSS Completed
+
+============================
+Executing test_templateworks.js...
+Testing TemplateWorks Lab...
+[+] Simulating normal workflow...
+  -> Normal workflow passed.
+[+] Simulating manipulated request (SSTI)...
+  -> SSTI attack successful.
+[+] Verifying lab completion state...
+  -> Lab marked as complete.
+TemplateWorks tests passed!
+
+
+[SUCCESS] All functional lab tests passed! Vulnerabilities and completion logic are sound.

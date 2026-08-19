@@ -1,0 +1,159 @@
+const fs = require('fs');
+const path = require('path');
+
+const viewsDir = path.join(__dirname, 'labs', 'templateworks', 'views');
+
+if (!fs.existsSync(viewsDir)) {
+  fs.mkdirSync(viewsDir, { recursive: true });
+}
+
+const headerContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= labName %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/shared/style.css">
+</head>
+<body class="bg-gray-50 font-sans">
+  <header class="bg-slate-900 text-white">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="/labs/templateworks" class="text-2xl font-bold text-indigo-400 hover:text-indigo-300">✉️ <%= labName %></a>
+      <div class="space-x-4">
+        <a href="/labs/templateworks" class="hover:text-indigo-300">Dashboard</a>
+      </div>
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    
+    <% if (currentChallenge.key) { %>
+      <div class="mb-8 bg-white border-l-4 border-blue-500 rounded-lg shadow-sm p-4">
+        <h2 class="text-lg font-bold">Active Challenge: <%= currentChallenge.name %></h2>
+        <p class="text-sm text-gray-600 mb-2"><%= currentChallenge.objective %></p>
+        <% if (completed[currentChallenge.key]) { %>
+           <div class="bg-green-100 text-green-800 p-2 rounded text-sm font-semibold mt-2">✅ <%= currentChallenge.name %> Complete!</div>
+        <% } else { %>
+           <div class="bg-gray-100 text-gray-800 p-2 rounded text-sm mt-2 flex items-center">
+             <span class="mr-2">○</span> Investigation in progress...
+           </div>
+        <% } %>
+      </div>
+    <% } %>
+`;
+
+const footerContent = `
+  </main>
+  <div class="max-w-6xl mx-auto px-4 mt-8"><%- include('../../../views/partials/helper') %></div>
+  <footer class="bg-slate-900 mt-16 py-8"><div class="max-w-6xl mx-auto px-4 text-center"><form action="/labs/templateworks/reset" method="POST"><button type="submit" class="text-slate-400 hover:text-white text-sm hover:underline">Reset Lab Environment</button></form></div></footer>
+</body>
+</html>`;
+
+const homeEjs = `${headerContent}
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold text-slate-800">Email Campaigns</h1>
+      <form action="/labs/templateworks/api/campaigns" method="POST">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow text-sm font-semibold">
+          + New Campaign
+        </button>
+      </form>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-gray-100 text-gray-600 text-sm border-b border-gray-200">
+            <th class="p-4">ID</th>
+            <th class="p-4">Campaign Title</th>
+            <th class="p-4">Subject</th>
+            <th class="p-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% campaigns.forEach(c => { %>
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+              <td class="p-4 text-gray-500 font-mono text-sm">#<%= c.id %></td>
+              <td class="p-4 font-semibold text-slate-800"><%= c.title %></td>
+              <td class="p-4 text-gray-600"><%= c.subject %></td>
+              <td class="p-4 text-right">
+                <a href="/labs/templateworks/campaign/<%= c.id %>" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium">Edit / Preview</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+${footerContent}`;
+
+const campaignEjs = `${headerContent}
+    <div class="mb-6">
+      <a href="/labs/templateworks" class="text-indigo-600 hover:underline text-sm flex items-center mb-4">← Back to Campaigns</a>
+      <h1 class="text-2xl font-bold text-slate-800">Campaign Editor: <%= campaign.title %></h1>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Editor Form -->
+      <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+        <form action="/labs/templateworks/api/campaigns/<%= campaign.id %>" method="POST" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Campaign Title</label>
+            <input type="text" name="title" value="<%= campaign.title %>" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email Subject</label>
+            <input type="text" name="subject" value="<%= campaign.subject %>" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+              <span>Email Body (Template)</span>
+              <span class="text-xs text-gray-500">Variables available: &lt;%= user.name %&gt;, &lt;%= user.email %&gt;</span>
+            </label>
+            <textarea name="body" rows="10" class="w-full border border-gray-300 rounded p-2 font-mono text-sm focus:ring-2 focus:ring-indigo-500 outline-none"><%= campaign.body %></textarea>
+          </div>
+          <div class="flex space-x-4 pt-4">
+            <button type="submit" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded shadow text-sm font-semibold">
+              Save Campaign
+            </button>
+            <button type="button" id="previewBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded shadow text-sm font-semibold">
+              Preview Notification
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <!-- Preview Pane -->
+      <div class="bg-gray-100 p-6 rounded-lg shadow-inner border border-gray-300 flex flex-col">
+        <h2 class="text-lg font-bold text-gray-700 mb-4 border-b border-gray-300 pb-2">Live Preview</h2>
+        <div id="previewArea" class="flex-grow bg-white p-6 rounded border border-gray-200 overflow-auto shadow-sm prose max-w-none">
+          <p class="text-gray-400 text-center italic mt-10">Click "Preview Notification" to render the template.</p>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      document.getElementById('previewBtn').addEventListener('click', async () => {
+        const previewArea = document.getElementById('previewArea');
+        previewArea.innerHTML = '<p class="text-gray-500 italic">Rendering via internal API...</p>';
+        
+        try {
+          const res = await fetch('/labs/templateworks/api/render', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ campaignId: '<%= campaign.id %>' })
+          });
+          const data = await res.json();
+          if (data.preview) {
+            previewArea.innerHTML = data.preview;
+          } else if (data.error) {
+            previewArea.innerHTML = \`<div class="text-red-500 font-mono text-sm">\${data.error}</div>\`;
+          }
+        } catch (err) {
+          previewArea.innerHTML = '<div class="text-red-500 font-mono text-sm">Network error connecting to rendering API.</div>';
+        }
+      });
+    </script>
+${footerContent}`;
+
+fs.writeFileSync(path.join(viewsDir, 'home.ejs'), homeEjs);
+fs.writeFileSync(path.join(viewsDir, 'campaign.ejs'), campaignEjs);
+
+console.log("TemplateWorks EJS generated successfully.");

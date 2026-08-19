@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Server-Side Request Forgery (SSRF) is a web security vulnerability that allows an attacker to induce the server-side application to make HTTP requests to an arbitrary domain of the attacker's choosing. This allows attackers to access internal systems, fetch sensitive data from metadata APIs, or perform port scanning on the internal network.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine a hotel receptionist who will call any room you ask them to, no questions asked. You could use them to call the manager's private line, which normally only accepts internal calls. SSRF works exactly like this, but with a web server making requests on your behalf.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+      <li>Image fetching/uploading utilities (e.g., "Import from URL")</li>
+      <li>Webhooks and integrations</li>
+      <li>PDF generation services</li>
+      <li>Link preview generators</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+[Attacker] ---> (Sends URL: http://localhost/admin) ---> [Web Server]
+                                                            |
+                                                            v
+                                                  [Internal Admin Panel]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+POST /import-image HTTP/1.1
+Host: example.com
+Content-Type: application/x-www-form-urlencoded
+
+url=http://localhost/admin/delete?user=123
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+      <li>Find any feature that accepts a URL and fetches data from it.</li>
+      <li>Intercept the request in Burp Proxy.</li>
+      <li>Send it to Repeater and modify the URL to point to internal services (e.g., <code>http://127.0.0.1</code>, <code>http://localhost</code>, <code>http://169.254.169.254</code>).</li>
+      <li>Observe the response to see if you get internal data or different errors indicating internal network state.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+app.get('/fetch', (req, res) => {
+  const userUrl = req.query.url;
+  // Directly fetching user-provided URL without validation
+  http.get(userUrl, (response) => { ... });
+});
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+app.get('/fetch', (req, res) => {
+  const userUrl = req.query.url;
+  const parsed = new URL(userUrl);
+  
+  // Validate against an allowlist
+  if (parsed.hostname !== 'allowed-domain.com') {
+    return res.status(403).send('Forbidden');
+  }
+  http.get(userUrl, (response) => { ... });
+});
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+      <li>Access to internal APIs and administrative panels.</li>
+      <li>Exposure of cloud provider metadata (like AWS IAM credentials).</li>
+      <li>Remote Code Execution in some severe cases (e.g., interacting with internal Redis or Memcached).</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+      <li>Look for endpoints that accept full URLs or partial paths.</li>
+      <li>Test with Burp Collaborator to see if the server reaches out to your controlled domain.</li>
+      <li>Try bypassing blacklists using IP encoding (e.g., <code>http://2130706433</code> for <code>127.0.0.1</code>) or DNS rebinding.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Avoid taking full URLs from users if possible. If you must, validate the input against a strict allowlist of domains or IP addresses. Ensure you resolve the DNS and check the IP address against internal ranges before making the request. Disable URL redirection following, or re-validate on redirects.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+      <li>Use an allowlist of permitted domains/IPs.</li>
+      <li>Do not send raw responses from fetched URLs directly back to the client.</li>
+      <li>Run the fetching service in an isolated network segment (VPC) with no access to internal infrastructure.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>In this lab, there's a feature to import an image via a URL. The server fetches this URL and returns the data. Start by passing a normal URL. Then, observe how the server behaves. Can you convince the server to fetch data from its own internal endpoints that are normally hidden?</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>The application took your URL parameter and directly passed it to <code>http.get()</code> without validating if the target was an internal or external resource. By supplying <code>http://localhost:3000/labs/pixdrop/lab-internal/protected</code>, you successfully abused the server's trust and forced it to retrieve restricted internal data.</p>
+  </div>
+</body>
+</html>

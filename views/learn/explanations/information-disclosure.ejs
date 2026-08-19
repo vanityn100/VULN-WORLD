@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Information Disclosure occurs when an application inadvertently reveals sensitive data to unauthorized users. This can include environment variables, API keys, database credentials, internal IPs, or stack traces, often exposed through leftover debug endpoints or misconfigured error handling.</p>
+
+    <h2>In Simple Words</h2>
+    <p>It’s like leaving the combination to a safe written on a sticky note attached to the safe itself. You intended to remember it easily while setting up the safe, but forgot to remove the note when you put the safe in a public place.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+      <li>Debug or staging endpoints mistakenly left accessible in production (e.g., <code>/debug</code>, <code>/phpinfo.php</code>).</li>
+      <li>Verbose error messages or stack traces returned to the user.</li>
+      <li>Backup files (e.g., <code>.bak</code>, <code>.old</code>, or <code>.git</code> directories) accessible via the web server.</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+User requests /api/debug/config
+   |
+   V
+App assumes only developers know this path
+   |
+   V
+App returns JSON with { "db_password": "supersecret" }
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /debug HTTP/1.1
+Host: example.com
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "status": "debug_mode",
+  "api_key": "AKIA-SECRET-KEY"
+}
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+      <li>Use directory brute-forcing tools (like DirBuster or Burp Intruder) to find hidden paths.</li>
+      <li>Look closely at the HTML source code or JavaScript files for comments mentioning internal URLs.</li>
+      <li>Access endpoints like <code>/debug</code>, <code>/status</code>, or <code>/env</code> and inspect the response for sensitive data.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+app.get('/debug', (req, res) => {
+  // Left in for troubleshooting
+  res.json(process.env);
+});
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+// Endpoint removed entirely, or secured behind strong authentication:
+app.get('/debug', requireAdmin, (req, res) => {
+  res.json({ status: "ok" }); // Never leak sensitive credentials
+});
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+      <li>Attackers can use leaked credentials (like API keys) to impersonate the application or access external services.</li>
+      <li>Leaked database credentials can lead to full data breaches.</li>
+      <li>Internal network details can aid in further exploitation.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+      <li>Review JS files and HTML comments for forgotten endpoints.</li>
+      <li>Trigger deliberate errors (e.g., sending bad input) to see if the app leaks stack traces.</li>
+      <li>Check robots.txt for disallowed but accessible sensitive directories.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Ensure that debug endpoints, verbose error messages, and development tools are disabled in production. Implement generic error messages and log the detailed errors internally instead of sending them to the client.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+      <li>Strip all comments containing sensitive paths or logic before deploying.</li>
+      <li>Turn off debug mode in the framework configuration (e.g., set `NODE_ENV=production`).</li>
+      <li>Regularly scan the application for exposed files and directories.</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>In this lab, the dashboard contains a clue about a leftover developer endpoint. Find the HTML comment, visit the hidden endpoint, and extract the secret API key. Submit the API key to complete the lab.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>You found an HTML comment pointing to `/labs/projecthub/debug`. Accessing this endpoint returned a JSON object containing sensitive environment details, including the `api_key`. The developer failed to remove this endpoint before deploying the application, resulting in a critical information disclosure.</p>
+  </div>
+</body>
+</html>

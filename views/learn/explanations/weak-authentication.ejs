@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Weak authentication occurs when an application relies on a flawed mechanism to verify a user's identity. This can range from permitting highly predictable passwords (like default credentials) to not protecting against brute-force attacks by failing to limit login attempts.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine a bank vault secured by a flimsy padlock that has a combination of '1234'. Or a security guard who never stops you from guessing passwords until you finally say the right one. That's weak authentication.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>Login pages lacking rate limiting or account lockout.</li>
+        <li>Systems with default or hardcoded credentials (e.g., admin:admin).</li>
+        <li>APIs that do not implement multi-factor authentication (MFA) for highly sensitive actions.</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+[Attacker] --(tries admin/admin)--> [Server]
+[Server]   --(Authentication OK)--> [Attacker is now Admin!]
+
+Or:
+[Attacker] --(script tries 10,000 passwords)--> [Server]
+[Server]   --(No rate limit, eventually accepts)--> [Attacker gets in]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+POST /login HTTP/1.1
+Host: example.com
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=password123
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Intercept a login request in Burp Suite.</li>
+        <li>Send it to Intruder.</li>
+        <li>Set a payload position on the password field and load a list of common passwords (e.g., SecLists).</li>
+        <li>Start the attack and observe if you get a successful response (like a 302 Redirect or a 200 OK with different content length).</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+// No rate limiting, weak password policy, and cleartext checking
+if (username === 'admin' && password === 'password123') {
+    login();
+}
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+// Strong hashing, lockout mechanism, and MFA validation
+const user = await User.findOne({ username });
+if (user.isLocked) return res.send('Account locked');
+
+if (await bcrypt.compare(password, user.passwordHash)) {
+    // Reset lockout counters, issue MFA token
+    login();
+}
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Full account takeover by an attacker.</li>
+        <li>Unauthorized access to sensitive data and functionalities.</li>
+        <li>Identity theft and subsequent fraudulent actions.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Test for rate limiting on login forms (send 50-100 rapid requests).</li>
+        <li>Check documentation for default credentials on third-party software.</li>
+        <li>Check if the application enforces strong password policies during registration.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Enforce strong password policies (length, complexity), implement account lockout mechanisms or rate limiting (e.g., CAPTCHA after X failed attempts), and enforce Multi-Factor Authentication (MFA) for administrative or sensitive accounts.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Are repeated login failures rate-limited or locked out?</li>
+        <li>Are default credentials changed upon installation?</li>
+        <li>Is MFA available or enforced?</li>
+        <li>Are passwords securely hashed using algorithms like Argon2 or bcrypt?</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>Your goal is to log in as the admin user. You know the username is 'admin', but you don't know the password. Perhaps the admin is using an extremely common password? Think about what standard fallback passwords are often used in development or by careless users.</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>In this lab, the system allowed the use of an extremely weak password ('password123') for the 'admin' account and had absolutely no rate-limiting or lockout mechanisms in place. By simply guessing or using basic brute-force techniques, an attacker could easily bypass authentication and gain full administrative access to the system.</p>
+  </div>
+</body>
+</html>

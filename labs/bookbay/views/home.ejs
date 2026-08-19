@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= labName %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/shared/style.css">
+</head>
+<body class="bg-gray-50 font-sans">
+  <!-- Top Navigation -->
+  <header class="bg-slate-900 text-white">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/labs/bookbay" class="text-2xl font-bold text-amber-500 hover:text-amber-400 transition flex-shrink-0">
+        📚 <%= labName %>
+      </a>
+      
+      <!-- Search Bar -->
+      <div class="flex-grow max-w-2xl mx-6">
+        <form action="/labs/bookbay/search" method="GET" class="flex w-full rounded-md overflow-hidden shadow-sm">
+          <select class="bg-gray-100 text-gray-700 px-3 py-2 border-r border-gray-300 outline-none text-sm hidden md:block">
+            <option>All Departments</option>
+            <option>Books</option>
+          </select>
+          <input type="text" name="q" placeholder="Search for books, authors..." value="<%= query || '' %>" class="flex-grow px-4 py-2 text-gray-900 outline-none focus:ring-2 focus:ring-amber-500 inset-0">
+          <button type="submit" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-6 py-2 font-semibold transition-colors">
+            Search
+          </button>
+        </form>
+      </div>
+
+      <div class="flex items-center space-x-6">
+        <a href="/labs/bookbay/cart" class="flex items-center space-x-1 hover:text-amber-500 transition-colors">
+          <span class="text-2xl">🛒</span>
+          <span class="font-bold">Cart <span class="text-amber-500">(<%= cartItemCount %>)</span></span>
+        </a>
+      </div>
+    </div>
+    
+    <!-- Secondary Nav -->
+    <div class="bg-slate-800 text-sm py-2">
+      <div class="max-w-7xl mx-auto px-4 flex space-x-6 text-gray-200">
+        <a href="#" class="hover:text-white font-medium">☰ All</a>
+        <a href="#" class="hover:text-white">Best Sellers</a>
+        <a href="#" class="hover:text-white">New Releases</a>
+        <a href="#" class="hover:text-white">Computers & Technology</a>
+        <a href="#" class="hover:text-white">Business</a>
+        <a href="#" class="hover:text-white">Education</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    
+    <!-- Active Challenge Banner -->
+    <% if (currentChallenge.key) { %>
+      <div class="mb-6 bg-white border-l-4 border-blue-500 rounded-lg shadow-sm p-4">
+        <h2 class="text-lg font-bold">Active Challenge: <%= currentChallenge.name %></h2>
+        <p class="text-sm text-gray-600 mb-2"><%= currentChallenge.objective %></p>
+        <% if (completed[currentChallenge.key]) { %>
+           <div class="bg-green-100 text-green-800 p-2 rounded text-sm font-semibold mt-2">✅ <%= currentChallenge.name %> Complete!</div>
+        <% } else { %>
+           <div class="bg-gray-100 text-gray-800 p-2 rounded text-sm mt-2 flex items-center">
+             <span class="mr-2">○</span> Investigation in progress...
+           </div>
+        <% } %>
+      </div>
+    <% } %>
+
+    <% if (typeof error !== 'undefined') { %>
+      <div class="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg shadow-sm">
+        <strong class="font-bold">Database Error:</strong> <%= error %>
+      </div>
+    <% } %>
+
+    <div class="mb-6 pb-2 border-b border-gray-200">
+      <% if (query) { %>
+        <h2 class="text-2xl font-semibold text-gray-800">Search Results for "<span class="text-amber-600"><%= query %></span>"</h2>
+      <% } else { %>
+        <h2 class="text-2xl font-semibold text-gray-800">Featured Books</h2>
+      <% } %>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+      <% if (books && books.length > 0) { %>
+        <% books.forEach(book => { %>
+          <div class="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col p-4">
+            <a href="/labs/bookbay/book/<%= book.id %>" class="block">
+              <div class="bg-gray-100 rounded-md w-full aspect-[2/3] flex items-center justify-center mb-4 relative group overflow-hidden">
+                <span class="text-gray-400 font-medium">Cover</span>
+              </div>
+              <h3 class="text-lg font-medium text-slate-900 leading-tight mb-1 line-clamp-2" title="<%= book.title %>"><%= book.title %></h3>
+              <p class="text-sm text-gray-600 mb-2">by <%= book.author %></p>
+            </a>
+            
+            <div class="mt-auto">
+              <div class="text-xl font-bold text-slate-900 mb-3">$<%= book.price.toFixed(2) %></div>
+              
+              <% if (book.secret && book.secret.startsWith('FLAG')) { %>
+                <div class="text-xs bg-red-100 text-red-800 px-2 py-1 rounded mb-3 font-mono break-all inline-block"><%= book.secret %></div>
+              <% } %>
+              
+              <form action="/labs/bookbay/cart/add" method="POST">
+                <input type="hidden" name="bookId" value="<%= book.id %>">
+                <input type="hidden" name="quantity" value="1">
+                <button type="submit" class="w-full bg-amber-400 hover:bg-amber-500 text-slate-900 font-medium py-2 rounded-full transition-colors shadow-sm text-sm">
+                  Add to Cart
+                </button>
+              </form>
+            </div>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <div class="col-span-full py-12 text-center">
+          <p class="text-gray-500 text-lg">No books found matching your search.</p>
+          <a href="/labs/bookbay" class="text-blue-600 hover:underline mt-2 inline-block">Clear search</a>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <div class="max-w-7xl mx-auto px-4 mt-8">
+    <%- include('../../../views/partials/helper') %>
+  </div>
+  
+  <footer class="bg-slate-900 mt-16 py-8">
+    <div class="max-w-7xl mx-auto px-4 text-center">
+      <form action="/labs/bookbay/reset" method="POST">
+        <button type="submit" class="text-slate-400 hover:text-white text-sm transition-colors hover:underline">
+          Reset Lab Environment
+        </button>
+      </form>
+    </div>
+  </footer>
+</body>
+</html>

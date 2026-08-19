@@ -1,0 +1,9 @@
+body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+header { background: #333; color: white; padding: 10px 20px; margin-bottom: 20px; border-radius: 4px; }
+header h1 { margin: 0; font-size: 24px; }
+.container { max-width: 800px; margin: 20px auto; background: white; padding: 20px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+a { color: #0056b3; text-decoration: none; margin-right: 15px; font-weight: bold; }
+a:hover { text-decoration: underline; }
+button { background: #333; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+input { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
+pre { background: #eee; padding: 10px; border-radius: 4px; overflow-x: auto; }

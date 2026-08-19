@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PixDrop - Media Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col">
+  <nav class="bg-indigo-600 text-white shadow-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center gap-2">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+          <span class="font-bold text-xl tracking-wider">PixDrop</span>
+        </div>
+        <div class="flex space-x-4">
+          <a href="#" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500">Explore</a>
+          <a href="#" class="px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-500">Upload</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-grow max-w-7xl w-full mx-auto py-10 sm:px-6 lg:px-8">
+    <% if (completed) { %>
+      <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-sm">
+        <strong class="font-bold">✓ Investigation Complete:</strong> You successfully exploited SSRF!
+      </div>
+    <% } %>
+    <div class="bg-white rounded-lg shadow px-5 py-6 sm:px-6">
+      <h2 class="text-2xl font-bold mb-4 text-gray-900">Import Media</h2>
+      <p class="text-gray-600 mb-6">Quickly import high-quality images from the web directly into your workspace. Note: We restrict imports to partner networks.</p>
+      
+      <form action="/labs/pixdrop/import" method="GET" class="space-y-4 max-w-lg">
+        <div>
+          <label for="url" class="block text-sm font-medium text-gray-700">Image Source URL</label>
+          <div class="mt-1 flex rounded-md shadow-sm">
+            <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+              URL
+            </span>
+            <input type="text" name="url" id="url" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="http://localhost:3000/labs/pixdrop/lab-internal/public" required>
+          </div>
+        </div>
+        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Import Image
+        </button>
+      </form>
+    </div>
+
+    <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 opacity-75">
+       <div class="bg-gray-200 h-48 rounded-lg flex items-center justify-center text-gray-500 border border-gray-300">Gallery Image 1</div>
+       <div class="bg-gray-200 h-48 rounded-lg flex items-center justify-center text-gray-500 border border-gray-300">Gallery Image 2</div>
+       <div class="bg-gray-200 h-48 rounded-lg flex items-center justify-center text-gray-500 border border-gray-300">Gallery Image 3</div>
+    </div>
+  </main>
+
+  <div class="mt-16 container mx-auto px-4 pb-8">
+    <%- include('../../../views/partials/helper') %>
+  </div>
+</body>
+</html>

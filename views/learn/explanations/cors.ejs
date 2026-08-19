@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Cross-Origin Resource Sharing (CORS) is a browser mechanism that allows a web page to access restricted resources from a different domain. When a server is misconfigured to trust any origin (e.g., dynamically reflecting the `Origin` header) combined with allowing credentials (`Access-Control-Allow-Credentials: true`), attackers can trick victims into visiting a malicious site, which then silently reads their sensitive data from the vulnerable server.</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine your bank allows any website in the world to ask, "Hey, what's Bob's account balance?" and gives them the answer, just because the website asked nicely. CORS misconfigurations tear down the walls that keep different websites from reading each other's data.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>API Endpoints.</li>
+        <li>Microservices architectures.</li>
+        <li>Single Page Applications (SPAs) talking to a backend server.</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+[Victim] --(Visits https://evil.com)--> [Evil Site]
+[Evil Site JS] --(fetch('https://api.bank.com/data', credentials: 'include'))--> [Bank API]
+[Bank API] --(Reflects Origin: https://evil.com)--> [Victim Browser]
+[Victim Browser] --(Allows JS to read data)--> [Evil Site JS]
+[Evil Site JS] --(Sends stolen data)--> [Attacker]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /api/userinfo HTTP/1.1
+Host: api.example.com
+Origin: https://evil.com
+Cookie: session=victim_token
+
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: https://evil.com
+Access-Control-Allow-Credentials: true
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Intercept an API request that returns sensitive information.</li>
+        <li>Add or modify the `Origin` header (e.g., `Origin: https://evil.com`).</li>
+        <li>Observe the response. If it contains `Access-Control-Allow-Origin: https://evil.com` and `Access-Control-Allow-Credentials: true`, it is highly vulnerable.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+// Blindly reflecting the Origin header
+const origin = req.headers.origin;
+res.setHeader('Access-Control-Allow-Origin', origin);
+res.setHeader('Access-Control-Allow-Credentials', 'true');
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+// Using a strict allowlist
+const allowedOrigins = ['https://myapp.com', 'https://www.myapp.com'];
+const origin = req.headers.origin;
+if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+}
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Data theft (reading sensitive user data).</li>
+        <li>Bypassing CSRF protections if anti-CSRF tokens can be read via CORS.</li>
+        <li>Session hijacking.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Test for dynamic reflection by sending `Origin: null` or `Origin: https://evil.com`.</li>
+        <li>Check for poorly constructed regex allowlists (e.g., `https://example.com.evil.com`).</li>
+        <li>Check if wildcard `*` is used with credentials (modern browsers block this, but it indicates poor hygiene).</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Define a strict, explicit allowlist of trusted origins. Never dynamically reflect the `Origin` header without validating it against this list. Avoid using `Access-Control-Allow-Origin: *` when credentials are permitted.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Is the CORS policy restricted to specific, trusted domains?</li>
+        <li>Is dynamic reflection of the Origin header strictly avoided?</li>
+        <li>Are credentials only allowed when absolutely necessary?</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>Send an API request to fetch your data. Modify the request in Burp Suite and add an `Origin: https://evil.com` header. Look at the response headers. Do they permit `evil.com` to read the data using credentials?</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>The API endpoint blindly took whatever was inside the `Origin` header and echoed it back in the `Access-Control-Allow-Origin` response header, while also setting `Access-Control-Allow-Credentials: true`. An attacker could host a malicious script on an external domain, trick an authenticated user into visiting it, and steal their sensitive data.</p>
+  </div>
+</body>
+</html>

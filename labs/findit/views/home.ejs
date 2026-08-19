@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= query ? query + ' - ' : '' %><%= labName %> Search</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/shared/style.css">
+  <style>
+    .brand-g { color: #4285f4; }
+    .brand-o1 { color: #ea4335; }
+    .brand-o2 { color: #fbbc05; }
+    .brand-l { color: #34a853; }
+  </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col font-sans">
+
+  <% if (results !== null) { %>
+    <!-- Search Results View -->
+    <header class="p-6 flex items-center border-b border-gray-200 sticky top-0 bg-white z-10">
+      <a href="/labs/findit" class="text-3xl font-bold mr-8 tracking-tighter hover:opacity-90">
+        <span class="brand-g">F</span><span class="brand-o1">i</span><span class="brand-o2">n</span><span class="brand-g">d</span><span class="brand-l">I</span><span class="brand-o1">t</span>
+      </a>
+      <form action="/labs/findit/search" method="GET" class="flex items-center w-full max-w-3xl bg-white border border-gray-200 hover:shadow-md focus-within:shadow-md rounded-full px-4 py-2 transition-shadow">
+        <span class="text-gray-400 mr-2 text-xl">🔍</span>
+        <input type="text" name="q" value="<%- query %>" autocomplete="off" class="flex-grow outline-none text-gray-800 text-lg">
+        <button type="submit" class="hidden">Search</button>
+        <span class="text-gray-400 text-xl ml-2 border-l pl-3 cursor-pointer">🎤</span>
+      </form>
+      <div class="ml-auto flex items-center space-x-4">
+        <span class="text-xl cursor-pointer hover:bg-gray-100 p-2 rounded-full">⚙️</span>
+        <span class="text-xl cursor-pointer hover:bg-gray-100 p-2 rounded-full">📱</span>
+        <div class="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold">U</div>
+      </div>
+    </header>
+    
+    <main class="flex-grow px-8 md:pl-[170px] pt-6 max-w-4xl">
+      <% if (completed) { %>
+        <div class="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-sm">
+          <strong>✓ Investigation Complete:</strong> You successfully injected malicious JavaScript into the search page (Reflected XSS)!
+        </div>
+      <% } %>
+      
+      <div class="text-gray-500 text-sm mb-6">
+        About 2 results for <strong class="text-gray-700 font-medium"><%- query %></strong> (0.04 seconds)
+      </div>
+      
+      <div class="space-y-8">
+        <% results.forEach(res => { %>
+          <article class="max-w-2xl">
+            <div class="flex items-center text-sm text-gray-700 mb-1">
+              <div class="w-6 h-6 bg-gray-200 rounded-full mr-2 flex items-center justify-center text-xs">🌐</div>
+              <cite class="not-italic truncate">https://example.com/mock</cite>
+              <span class="mx-1 text-gray-400">⋮</span>
+            </div>
+            <a href="#" class="group">
+              <h3 class="text-xl text-blue-800 group-hover:underline mb-1"><%= res.title %></h3>
+            </a>
+            <p class="text-sm text-gray-600 leading-snug"><%= res.desc %></p>
+          </article>
+        <% }) %>
+      </div>
+      
+      <!-- Related searches placeholder -->
+      <div class="mt-12 max-w-2xl">
+        <h3 class="text-xl text-gray-800 mb-4">Related searches</h3>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-gray-100 hover:bg-gray-200 cursor-pointer rounded-full px-4 py-2 text-sm flex items-center space-x-2"><span class="text-gray-400">🔍</span><span><%- query %> definition</span></div>
+          <div class="bg-gray-100 hover:bg-gray-200 cursor-pointer rounded-full px-4 py-2 text-sm flex items-center space-x-2"><span class="text-gray-400">🔍</span><span><%- query %> examples</span></div>
+        </div>
+      </div>
+    </main>
+
+  <% } else { %>
+    <!-- Home View -->
+    <div class="flex justify-end p-4 space-x-4 text-sm text-gray-700 items-center">
+      <a href="#" class="hover:underline">Gmail</a>
+      <a href="#" class="hover:underline">Images</a>
+      <span class="text-xl cursor-pointer hover:bg-gray-100 p-2 rounded-full">📱</span>
+      <div class="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold cursor-pointer">U</div>
+    </div>
+
+    <main class="flex-grow flex flex-col items-center justify-center -mt-20">
+      <div class="text-[80px] font-bold mb-8 tracking-tighter">
+        <span class="brand-g">F</span><span class="brand-o1">i</span><span class="brand-o2">n</span><span class="brand-g">d</span><span class="brand-l">I</span><span class="brand-o1">t</span>
+      </div>
+      
+      <form action="/labs/findit/search" method="GET" class="w-full max-w-xl px-4">
+        <div class="flex items-center w-full bg-white border border-gray-200 hover:shadow-md focus-within:shadow-md rounded-full px-5 py-3 transition-shadow">
+          <span class="text-gray-400 mr-3 text-xl">🔍</span>
+          <input type="text" name="q" autocomplete="off" autofocus class="flex-grow outline-none text-gray-800 text-lg">
+          <span class="text-gray-400 text-xl ml-2 cursor-pointer" title="Search by voice">🎤</span>
+          <span class="text-gray-400 text-xl ml-3 cursor-pointer" title="Search by image">📷</span>
+        </div>
+        
+        <div class="flex justify-center mt-8 space-x-3">
+          <button type="submit" class="bg-gray-50 hover:border-gray-300 border border-transparent text-gray-800 px-4 py-2 rounded text-sm transition-colors">FindIt Search</button>
+          <button type="button" class="bg-gray-50 hover:border-gray-300 border border-transparent text-gray-800 px-4 py-2 rounded text-sm transition-colors">I'm Feeling Lucky</button>
+        </div>
+      </form>
+      
+      <% if (completed) { %>
+        <div class="mt-8 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-sm">
+          <strong>✓ Investigation Complete:</strong> You successfully injected malicious JavaScript!
+        </div>
+      <% } %>
+      
+      <div class="mt-8 text-sm text-gray-600">
+        FindIt offered in: <a href="#" class="text-blue-600 hover:underline">Français</a> <a href="#" class="text-blue-600 hover:underline">Español</a>
+      </div>
+    </main>
+
+    <footer class="bg-gray-100 text-gray-500 text-sm border-t border-gray-200">
+      <div class="px-6 py-3 border-b border-gray-200">
+        United States
+      </div>
+      <div class="px-6 py-3 flex justify-between flex-wrap">
+        <div class="flex space-x-6">
+          <a href="#" class="hover:underline">About</a>
+          <a href="#" class="hover:underline">Advertising</a>
+          <a href="#" class="hover:underline">Business</a>
+          <a href="#" class="hover:underline">How Search works</a>
+        </div>
+        <div class="flex space-x-6">
+          <a href="#" class="hover:underline">Privacy</a>
+          <a href="#" class="hover:underline">Terms</a>
+          <a href="#" class="hover:underline">Settings</a>
+        </div>
+      </div>
+    </footer>
+  <% } %>
+
+  <div class="max-w-4xl mx-auto px-8 mt-12 mb-8">
+    <%- include('../../../views/partials/helper') %>
+  </div>
+  
+  <div class="fixed bottom-4 right-4 z-50">
+    <form action="/labs/findit/reset" method="POST">
+      <button type="submit" class="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded text-xs opacity-70 hover:opacity-100 transition-opacity shadow-sm">Reset Lab</button>
+    </form>
+  </div>
+</body>
+</html>

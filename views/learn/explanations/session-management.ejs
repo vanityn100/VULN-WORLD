@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title><%= vuln.name %> - Vuln-World</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background: #f9fafb; color: #374151; line-height: 1.6; }
+    header { background: #1f2937; color: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+    header a { color: #9ca3af; text-decoration: none; font-weight: bold; }
+    header a:hover { color: white; }
+    .container { max-width: 900px; margin: 40px auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    h1 { margin-top: 0; color: #111827; }
+    h2 { color: #1f2937; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; font-size: 18px; letter-spacing: 0.05em; }
+    .badge { display: inline-block; padding: 4px 8px; background: #e5e7eb; border-radius: 12px; font-size: 12px; font-weight: bold; margin-right: 10px; color: #4b5563; }
+    .btn { display: inline-block; padding: 12px 24px; background: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+    .btn:hover { background: #1d4ed8; }
+    pre { background: #1f2937; color: #f8f8f2; padding: 20px; border-radius: 6px; overflow-x: auto; font-family: monospace; font-size: 14px; }
+    .vuln-code { border-left: 4px solid #ef4444; }
+    .sec-code { border-left: 4px solid #10b981; }
+    .diagram { background: #f3f4f6; padding: 20px; font-family: monospace; white-space: pre; border-radius: 6px; border: 1px solid #e5e7eb; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/vulnerabilities">← Back to Vulnerabilities</a>
+  </header>
+  <div class="container">
+    <h1><%= vuln.name %></h1>
+    <div style="margin-bottom: 30px;">
+      <span class="badge"><%= vuln.category %></span>
+      <span class="badge"><%= vuln.difficulty %></span>
+    </div>
+    
+    <a href="/labs/<%= vuln.lab %>?challenge=<%= vuln.id %>" class="btn">Start Lab (<%= vuln.lab %>)</a>
+    
+    <h2>What Is It?</h2>
+    <p>Session Management vulnerabilities occur when an application does not securely handle the tokens or cookies used to identify a logged-in user. This can include using predictable session IDs, failing to properly invalidate sessions upon logout, or exposing session data in easily tampered formats (like plain Base64 without a signature).</p>
+
+    <h2>In Simple Words</h2>
+    <p>Imagine your hotel room key is just a piece of paper with your room number written on it. Anyone could cross out your room number, write the penthouse suite number, and the elevator would accept it. If your web session token is easily tampered with, attackers can become anyone they want.</p>
+
+    <h2>Where Does It Appear?</h2>
+    <ul>
+        <li>Session cookies set by web applications.</li>
+        <li>Hidden fields or URL parameters maintaining state.</li>
+        <li>Tokens stored in LocalStorage or SessionStorage without adequate integrity checks.</li>
+    </ul>
+
+    <h2>How Does It Occur?</h2>
+    <div class="diagram">
+[User logs in] --(Credentials)--> [Server]
+[Server]       --(Cookie: user=bob)--> [User]
+
+[Attacker logs in] --(Cookie: user=attacker)--> [Attacker]
+[Attacker edits cookie to user=admin] --> [Server]
+[Server accepts fake session] --> [Attacker has Admin access]
+    </div>
+
+    <h2>HTTP Example</h2>
+    <pre>
+GET /profile HTTP/1.1
+Host: example.com
+Cookie: session_token=eyAidXNlciI6ICJhZG1pbiIgfQ==
+    </pre>
+
+    <h2>Burp Suite Investigation</h2>
+    <ol>
+        <li>Log into the application to receive a session cookie.</li>
+        <li>Send the request with the cookie to Burp Repeater.</li>
+        <li>Try decoding the cookie in Burp Decoder (Base64, URL decode, Hex).</li>
+        <li>Modify the decoded payload (e.g., change username), re-encode it, and send the request.</li>
+        <li>Observe if the application accepts the modified session.</li>
+    </ol>
+
+    <h2>How Developers Accidentally Create It</h2>
+    <p>Vulnerable Code:</p>
+    <pre class="vuln-code">
+// Setting a session by just Base64 encoding the username
+const sessionData = { user: username };
+res.cookie('session', Buffer.from(JSON.stringify(sessionData)).toString('base64'));
+    </pre>
+    <p>Secure Code:</p>
+    <pre class="sec-code">
+// Using a secure, server-side session store with unpredictable IDs
+req.session.userId = user.id;
+// Or using signed tokens
+const token = jwt.sign({ user: username }, process.env.SECRET_KEY);
+res.cookie('session', token, { httpOnly: true, secure: true });
+    </pre>
+
+    <h2>Impact</h2>
+    <ul>
+        <li>Horizontal and vertical privilege escalation.</li>
+        <li>Unauthorized access to sensitive user data.</li>
+        <li>Account takeover without knowing the user's password.</li>
+    </ul>
+
+    <h2>How to Find It in Real Applications</h2>
+    <ul>
+        <li>Inspect cookies upon login. Check if they are sequential, predictable, or contain plain text.</li>
+        <li>Attempt to tamper with the cookie and check if the server rejects it.</li>
+        <li>Check if old sessions are valid after logging out or changing a password.</li>
+    </ul>
+
+    <h2>Remediation</h2>
+    <p>Use built-in, secure session management frameworks provided by your technology stack. Ensure session IDs are sufficiently long, random, and unguessable. If storing state client-side, heavily cryptographically sign the data to prevent tampering.</p>
+
+    <h2>Secure Design Checklist</h2>
+    <ul>
+        <li>Are session IDs random and unpredictable?</li>
+        <li>Are session cookies marked with HttpOnly, Secure, and SameSite flags?</li>
+        <li>Is session state verified using a secure cryptographic signature?</li>
+        <li>Are sessions invalidated on the server side upon logout?</li>
+    </ul>
+
+    <h2>Lab Investigation Guide</h2>
+    <p>Log in using the default user credentials (user/user123). Take a close look at the cookie that the server assigns to you. Use a tool like CyberChef or Burp Decoder to figure out what encoding the cookie uses. Can you manipulate it to assume the identity of the 'admin'?</p>
+
+    <h2>Post-Lab Explanation</h2>
+    <p>The application assigned a session cookie that was merely a Base64-encoded JSON object (e.g., `{"user":"user"}`). Because there was no cryptographic signature to verify the integrity of this cookie, an attacker could easily Base64-encode `{"user":"admin"}` and inject it into their browser, tricking the server into believing they were the administrator.</p>
+  </div>
+</body>
+</html>

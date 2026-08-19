@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const http = require('http');
 
-const labObjective = "Exploit the Server-Side Request Forgery (SSRF) vulnerability in the image importer to read the internal protected data at http://localhost:3000/labs/pixdrop/lab-internal/protected";
+const labObjective = "Exploit the Server-Side Request Forgery (SSRF) vulnerability in the image importer to read the internal protected data at .../labs/pixdrop/lab-internal/protected";
 const labHints = [
   "Notice the /import endpoint takes a 'url' parameter.",
   "Try passing standard web URLs to see how the server fetches them.",
-  "What happens if you pass an internal URL like http://localhost:3000/labs/pixdrop/lab-internal/protected?",
+  "What happens if you pass an internal URL like the current host's /labs/pixdrop/lab-internal/protected?",
   "SSRF allows you to make the server fetch resources on your behalf."
 ];
 
@@ -17,7 +17,8 @@ router.get('/', (req, res) => {
     labObjective: labObjective,
     labHints: labHints,
     resetPath: '/labs/pixdrop/reset',
-    completed: req.session.pixdropCompleted
+    completed: req.session.pixdropCompleted,
+    hostUrl: req.protocol + '://' + req.get('host')
   });
 });
 
@@ -29,14 +30,17 @@ router.get('/lab-internal/protected', (req, res) => res.send('FLAG: SSRFProtecte
 router.get('/import', (req, res) => {
   const url = req.query.url;
   if (!url) return res.send('Missing url parameter. <a href="/labs/pixdrop">Back</a>');
-  if (!url.startsWith('http://localhost:3000/labs/pixdrop/lab-internal/')) {
-    return res.status(403).send('Forbidden: External SSRF blocked for safety.');
+  
+  const currentHostUrl = `${req.protocol}://${req.get('host')}/labs/pixdrop/lab-internal/`;
+  if (!url.startsWith(currentHostUrl) && !url.startsWith('http://localhost:3000/labs/pixdrop/lab-internal/')) {
+    return res.status(403).send('Forbidden: External SSRF blocked for safety. You must request a lab-internal URL.');
   }
   
   // Vulnerable implementation of SSRF
   // No validation of the URL provided by the user
   try {
-    http.get(url, (response) => {
+    const fetchMod = url.startsWith('https://') ? require('https') : require('http');
+    fetchMod.get(url, (response) => {
       let data = ''; 
       response.on('data', chunk => data += chunk);
       response.on('end', () => {
